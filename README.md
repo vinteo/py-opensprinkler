@@ -18,6 +18,11 @@ version = os.device.getFirmwareVersion()
 `os.getProgram(index)`
 Index starts from 0
 
+`os.getStations()`
+
+`os.getStation(index)`
+Index starts from 0
+
 ### Device
 
 `os.device.getFirmwareVersion()`
@@ -62,3 +67,24 @@ program.run()
 `program.disable()`
 
 `program.run()`
+
+### Stations
+
+```python
+stations = os.getStations()
+isEnabled = stations[0].getStatus()
+
+station = os.getStation(0)
+station.run(120)
+```
+
+`station.getIsRunning()`
+
+`station.getRunningProgramId()`
+
+`station.getStatus()`
+
+`station.run(seconds)`
+ Acceptable range for seconds is 0 to 64800 (18 hours)
+
+`station.stop()`

@@ -6,6 +6,7 @@ import urllib
 
 from pyopensprinkler.device import Device
 from pyopensprinkler.program import Program
+from pyopensprinkler.station import Station
 
 _HTTP = httplib2.Http()
 
@@ -22,6 +23,7 @@ class OpenSprinkler(object):
         self.device = Device(self)
 
         self.getPrograms()
+        self.getStations()
 
     def _request(self, path, params={}):
         """Make a request from the API."""
@@ -52,3 +54,17 @@ class OpenSprinkler(object):
     def getProgram(self, index):
         """Retrieve program"""
         return self._programs[index]
+
+    def getStations(self):
+        """Retrieve stations"""
+        (resp, content) = self._request('jn')
+
+        self._stations = []
+        for i, station in enumerate(content['snames']):
+            self._stations.append(Station(self, station, i))
+
+        return self._stations
+
+    def getStation(self, index):
+        """Retrieve station"""
+        return self._stations[index]

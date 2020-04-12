@@ -26,7 +26,7 @@ class Program(object):
         return content['pd'][self._index][variableIndex]
 
     def _setVariable(self, option, value):
-        """Retrieve option"""
+        """Set option"""
         params = {}
         params['pid'] = self._index
         params[option] = value
