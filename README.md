@@ -2,6 +2,12 @@
 
 Python module for OpenSprinker API. Tested against OpenSprinkler version 2.1.9.
 
+## Installation
+
+```
+pip install pyopensprinkler
+```
+
 ## Usage
 
 ```python
