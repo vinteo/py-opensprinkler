@@ -20,7 +20,7 @@ class OpenSprinkler(object):
 
         self.device = Device(self)
 
-    def _request(self, path, method, params={}):
+    def _request(self, path, params={}):
         """Make a request from the API."""
         params['pw'] = self._md5password
         qs = urllib.parse.urlencode(params)
@@ -28,14 +28,10 @@ class OpenSprinkler(object):
 
         url = '/'.join([self._baseUrl, path]) + '?' + qs
         print(url)
-        (resp, content) = _HTTP.request(url, method)
+        (resp, content) = _HTTP.request(url, 'GET')
         # TODO: check resp for errors
 
         content = json.loads(content.decode('UTF-8'))
         print(content)
 
         return (resp, content)
-
-    def get(self, path, params={}):
-        """Make a GET request from the API."""
-        return self._request(path, 'GET', params)
