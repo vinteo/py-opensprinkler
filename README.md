@@ -8,10 +8,15 @@ Python module for OpenSprinker API. Tested against OpenSprinkler version 2.1.9.
 from pyopensprinkler import OpenSprinkler
 
 os = OpenSprinkler("hostname:port", "md5password")
-os.device.getFirmwareVersion()
+version = os.device.getFirmwareVersion()
 ```
 
 ## Commands
+
+`os.getPrograms()`
+
+`os.getProgram(index)`
+Index starts from 0
 
 ### Device
 
@@ -37,3 +42,21 @@ Rain sensor for firmware version <= 2.1.7
 `os.device.enable()`
 
 `os.device.disable()`
+
+### Programs
+
+```python
+programs = os.getPrograms()
+isEnabled = program[0].getEnabled()
+
+program = os.getProgram(0)
+program.run()
+```
+
+`program.getEnabled()`
+
+`program.enable()`
+
+`program.disable()`
+
+`program.run()`

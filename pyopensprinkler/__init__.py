@@ -5,6 +5,7 @@ import json
 import urllib
 
 from pyopensprinkler.device import Device
+from pyopensprinkler.program import Program
 
 _HTTP = httplib2.Http()
 
@@ -19,6 +20,8 @@ class OpenSprinkler(object):
         self._baseUrl = 'http://{}'.format(self._host)
 
         self.device = Device(self)
+
+        self.getPrograms()
 
     def _request(self, path, params={}):
         """Make a request from the API."""
@@ -35,3 +38,17 @@ class OpenSprinkler(object):
         print(content)
 
         return (resp, content)
+
+    def getPrograms(self):
+        """Retrieve programs"""
+        (resp, content) = self._request('jp')
+
+        self._programs = []
+        for i, program in enumerate(content['pd']):
+            self._programs.append(Program(self, program, i))
+
+        return self._programs
+
+    def getProgram(self, index):
+        """Retrieve program"""
+        return self._programs[index]

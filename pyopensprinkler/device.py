@@ -6,23 +6,23 @@ class Device(object):
 
     def __init__(self, opensprinkler):
         """Device class initializer."""
-        self.opensprinkler = opensprinkler
+        self._opensprinkler = opensprinkler
 
     def _getOption(self, option):
         """Retrieve option"""
-        (resp, content) = self.opensprinkler._request('jo')
+        (resp, content) = self._opensprinkler._request('jo')
         return content[option]
 
     def _getVariable(self, option):
         """Retrieve option"""
-        (resp, content) = self.opensprinkler._request('jc')
+        (resp, content) = self._opensprinkler._request('jc')
         return content[option]
 
     def _setVariable(self, option, value):
         """Retrieve option"""
         params = {}
         params[option] = value
-        (resp, content) = self.opensprinkler._request('cv', params)
+        (resp, content) = self._opensprinkler._request('cv', params)
         return content['result']
 
     def getFirmwareVersion(self):
