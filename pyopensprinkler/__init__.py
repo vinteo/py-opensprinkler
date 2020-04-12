@@ -36,6 +36,6 @@ class OpenSprinkler(object):
 
         return (resp, content)
 
-    def get(self, path):
+    def get(self, path, params={}):
         """Make a GET request from the API."""
-        return self._request(path, 'GET')
+        return self._request(path, 'GET', params)
