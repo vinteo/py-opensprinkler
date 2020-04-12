@@ -61,6 +61,10 @@ class Device(object):
         """Retrieve operation enabled"""
         return self._getVariable('en')
 
+    def getWaterLevel(self):
+        """Retrieve water level"""
+        return self._getOption('wl')
+
     def enable(self):
         """Enable operation"""
         return self._setVariable('en', 1)

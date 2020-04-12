@@ -39,6 +39,8 @@ Rain sensor for firmware version <= 2.1.7
 
 `os.device.getOperationEnabled()`
 
+`os.device.getWaterLevel()`
+
 `os.device.enable()`
 
 `os.device.disable()`
