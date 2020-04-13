@@ -4,7 +4,6 @@ import httplib2
 import json
 import urllib
 
-from cachetools import cached, TTLCache
 from pyopensprinkler.device import Device
 from pyopensprinkler.program import Program
 from pyopensprinkler.station import Station
@@ -26,7 +25,6 @@ class OpenSprinkler(object):
         self.getPrograms()
         self.getStations()
 
-    @cached(cache=TTLCache(maxsize=32, ttl=1))
     def _request(self, path, params={}):
         """Make a request from the API."""
         params['pw'] = self._md5password
