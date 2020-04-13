@@ -4,6 +4,7 @@ import httplib2
 import json
 import urllib
 
+from cachetools import cached, TTLCache
 from pyopensprinkler.device import Device
 from pyopensprinkler.program import Program
 from pyopensprinkler.station import Station
@@ -31,6 +32,10 @@ class OpenSprinkler(object):
         qs = urllib.parse.urlencode(params)
 
         url = f"{'/'.join([self._baseUrl, path])}?{qs}"
+        return self._requestHttp(url)
+
+    @cached(cache=TTLCache(maxsize=32, ttl=1))
+    def _requestHttp(self, url):
         (resp, content) = _HTTP.request(url, 'GET')
         # TODO: check resp for errors
 
