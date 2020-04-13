@@ -18,7 +18,7 @@ class OpenSprinkler(object):
         """OpenSprinkler class initializer."""
         self._host = host
         self._md5password = md5password
-        self._baseUrl = 'http://{}'.format(self._host)
+        self._baseUrl = f"http://{self._host}"
 
         self.device = Device(self)
 
@@ -29,15 +29,12 @@ class OpenSprinkler(object):
         """Make a request from the API."""
         params['pw'] = self._md5password
         qs = urllib.parse.urlencode(params)
-        print(qs)
 
-        url = '/'.join([self._baseUrl, path]) + '?' + qs
-        print(url)
+        url = f"{'/'.join([self._baseUrl, path])}?{qs}"
         (resp, content) = _HTTP.request(url, 'GET')
         # TODO: check resp for errors
 
         content = json.loads(content.decode('UTF-8'))
-        print(content)
 
         return (resp, content)
 

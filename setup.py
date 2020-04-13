@@ -1,30 +1,30 @@
 """pyopensprinkler setup script."""
 from setuptools import setup
 
-version = '0.2.0'
+version = "0.2.1"
 
-github_username = 'vinteo'
-github_repository = 'py-opensprinkler'
+github_username = "vinteo"
+github_repository = "py-opensprinkler"
 
-github_path = '{}/{}'.format(github_username, github_repository)
-github_url = 'https://github.com/{}'.format(github_path)
+github_path = f"{github_username}/{github_repository}"
+github_url = f"https://github.com/{github_path}"
 
-download_url = '{}/archive/{}.tar.gz'.format(github_url, version)
+download_url = f"{github_url}/archive/{version}.tar.gz"
 project_urls = {
-    'Bug Reports': '{}/issues'.format(github_url)
+    "Bug Reports": f"{github_url}/issues"
 }
 
 setup(
-    name='pyopensprinkler',
+    name="pyopensprinkler",
     version=version,
-    author='Vincent Teo',
-    author_email='vinteo@gmail.com',
-    packages=['pyopensprinkler'],
-    install_requires=['httplib2'],
+    author="Vincent Teo",
+    author_email="vinteo@gmail.com",
+    packages=["pyopensprinkler"],
+    install_requires=["httplib2"],
     url=github_url,
     download_url=download_url,
     project_urls=project_urls,
-    license='MIT',
-    description='A Python module for the OpenSprinkler API.',
-    platforms='Cross Platform',
+    license="MIT",
+    description="A Python module for the OpenSprinkler API.",
+    platforms="Cross Platform",
 )
