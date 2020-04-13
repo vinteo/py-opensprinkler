@@ -35,7 +35,7 @@ class Device(object):
 
     def getLastRun(self):
         """Retrieve hardware version"""
-        return self._getVariable('lrun')
+        return self._getVariable('lrun')[3]
 
     def getRainDelay(self):
         """Retrieve rain delay"""
