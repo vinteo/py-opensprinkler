@@ -30,7 +30,7 @@ class Program(object):
         params = {}
         params['pid'] = self._index
         params[option] = value
-        (resp, content) = self._opensprinkler._request('cp', params)
+        (resp, content) = self._opensprinkler._request('mp', params)
         return content['result']
 
     def getEnabled(self):
