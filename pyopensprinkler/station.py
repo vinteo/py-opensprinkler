@@ -22,44 +22,50 @@ class Station(object):
 
     def _getStatusVariable(self, statusIndex):
         """Retrieve seconds remaining"""
-        (resp, content) = self._opensprinkler._request('jc')
-        return content['ps'][self._index][statusIndex]
+        (resp, content) = self._opensprinkler.request("jc")
+        return content["ps"][self._index][statusIndex]
 
-    def _setVariables(self, params={}):
+    def _set_variables(self, params=None):
         """Set option"""
-        params['sid'] = self._index
-        (resp, content) = self._opensprinkler._request('cm', params)
-        return content['result']
+        if params is None:
+            params = {}
+        params["sid"] = self._index
+        (resp, content) = self._opensprinkler.request("cm", params)
+        return content["result"]
 
-    def getIsRunning(self):
+    @property
+    def is_running(self):
         """Retrieve is running flag"""
-        (resp, content) = self._opensprinkler._request('js')
-        return content['sn'][self._index]
+        (resp, content) = self._opensprinkler.request("js")
+        return content["sn"][self._index]
 
-    def getRunningProgramId(self):
+    @property
+    def running_program_id(self):
         """Retrieve seconds remaining"""
         return self._getStatusVariable(0)
 
-    def getSecondsRemaining(self):
+    @property
+    def seconds_remaining(self):
         """Retrieve seconds remaining"""
         return self._getStatusVariable(1)
 
-    def getStatus(self):
+    @property
+    def status(self):
         """Retrieve status"""
-        isRunning = self.getIsRunning()
-        pid = self.getRunningProgramId()
+        is_running = self.is_running()
+        pid = self.running_program_id
 
-        if (isRunning == 1):
-            if (pid == 99):
+        if is_running == 1:
+            if pid == 99:
                 state = "manual"
-            elif (pid == 254):
+            elif pid == 254:
                 state = "once_program"
-            elif (pid == 0):
+            elif pid == 0:
                 state = "idle"
             else:
                 state = "program"
         else:
-            if (pid > 0):
+            if pid > 0:
                 state = "waiting"
             else:
                 state = "idle"
@@ -68,13 +74,10 @@ class Station(object):
 
     def run(self, seconds=60):
         """Run station"""
-        params = {}
-        params['en'] = 1
-        params['t'] = seconds
-        return self._setVariables(params)
+        params = {"en": 1, "t": seconds}
+        return self._set_variables(params)
 
     def stop(self):
         """Stop station"""
-        params = {}
-        params['en'] = 0
-        return self._setVariables(params)
+        params = {"en": 0}
+        return self._set_variables(params)

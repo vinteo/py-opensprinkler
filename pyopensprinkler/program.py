@@ -20,31 +20,30 @@ class Program(object):
         """Program index"""
         return self._index
 
-    def _getVariable(self, variableIndex):
+    def _get_variable(self, variable_index):
         """Retrieve option"""
-        (resp, content) = self._opensprinkler._request('jp')
-        return content['pd'][self._index][variableIndex]
+        (resp, content) = self._opensprinkler.request("jp")
+        return content["pd"][self._index][variable_index]
 
-    def _setVariable(self, option, value):
+    def _set_variable(self, option, value):
         """Set option"""
-        params = {}
-        params['pid'] = self._index
-        params[option] = value
-        (resp, content) = self._opensprinkler._request('mp', params)
-        return content['result']
+        params = {"pid": self._index, option: value}
+        (resp, content) = self._opensprinkler.request("mp", params)
+        return content["result"]
 
-    def getEnabled(self):
+    @property
+    def enabled(self):
         """Retrieve enabled flag"""
-        return int('{0:08b}'.format(self._getVariable(0))[7])
+        return int("{0:08b}".format(self._get_variable(0))[7])
 
     def enable(self):
         """Enable operation"""
-        return self._setVariable('en', 1)
+        return self._set_variable("en", 1)
 
     def disable(self):
         """Disable operation"""
-        return self._setVariable('en', 0)
+        return self._set_variable("en", 0)
 
     def run(self):
         """Run program"""
-        return self._setVariable('uwt', 0)
+        return self._set_variable("uwt", 0)
