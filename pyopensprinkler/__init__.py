@@ -35,9 +35,12 @@ class OpenSprinkler(object):
         url = f"{'/'.join([self._baseUrl, path])}?{qs}"
         return self.request_http(url)
 
+    @cached(cache=TTLCache(maxsize=4, ttl=15))
+    def request_cached(self, path, params=None):
+        return self.request(path, params)
+
     @sleep_and_retry
     @limits(calls=8, period=1)
-    @cached(cache=TTLCache(maxsize=8, ttl=1))
     def request_http(self, url):
         (resp, content) = _HTTP.request(url, "GET")
         # TODO: check resp for errors
@@ -47,13 +50,17 @@ class OpenSprinkler(object):
     @property
     def programs(self):
         """Retrieve programs"""
-        (resp, content) = self.request("jp")
-        return [Program(self, program, i) for i, program in enumerate(content["pd"])]
+        (resp, content) = self.request_cached("ja")
+        return [
+            Program(self, program, i)
+            for i, program in enumerate(content["programs"]["pd"])
+        ]
 
     @property
     def stations(self):
         """Retrieve stations"""
-        (resp, content) = self.request("jn")
+        (resp, content) = self.request_cached("ja")
         return [
-            Station(self, station, i) for i, station in enumerate(content["snames"])
+            Station(self, station, i)
+            for i, station in enumerate(content["stations"]["snames"])
         ]
