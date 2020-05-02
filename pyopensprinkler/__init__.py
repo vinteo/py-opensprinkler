@@ -5,6 +5,7 @@ import urllib
 
 import httplib2
 from cachetools import cached, TTLCache
+from ratelimit import limits, sleep_and_retry
 
 from pyopensprinkler.device import Device
 from pyopensprinkler.program import Program
@@ -34,7 +35,9 @@ class OpenSprinkler(object):
         url = f"{'/'.join([self._baseUrl, path])}?{qs}"
         return self.request_http(url)
 
-    @cached(cache=TTLCache(maxsize=32, ttl=1))
+    @sleep_and_retry
+    @limits(calls=8, period=1)
+    @cached(cache=TTLCache(maxsize=8, ttl=1))
     def request_http(self, url):
         (resp, content) = _HTTP.request(url, "GET")
         # TODO: check resp for errors
