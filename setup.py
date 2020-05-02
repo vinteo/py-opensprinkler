@@ -10,9 +10,7 @@ github_path = f"{github_username}/{github_repository}"
 github_url = f"https://github.com/{github_path}"
 
 download_url = f"{github_url}/archive/{version}.tar.gz"
-project_urls = {
-    "Bug Reports": f"{github_url}/issues"
-}
+project_urls = {"Bug Reports": f"{github_url}/issues"}
 
 setup(
     name="pyopensprinkler",
