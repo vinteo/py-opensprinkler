@@ -4,6 +4,7 @@ import json
 import urllib
 
 import httplib2
+from backoff import expo, on_exception
 from cachetools import cached, TTLCache
 from ratelimit import limits, sleep_and_retry
 
@@ -39,8 +40,9 @@ class OpenSprinkler(object):
     def request_cached(self, path, params=None):
         return self.request(path, params)
 
+    @on_exception(expo, Exception, max_tries=3)
     @sleep_and_retry
-    @limits(calls=8, period=1)
+    @limits(calls=16, period=2)
     def request_http(self, url):
         (resp, content) = _HTTP.request(url, "GET")
         # TODO: check resp for errors
