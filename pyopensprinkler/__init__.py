@@ -1,10 +1,11 @@
 """Main OpenSprinkler module."""
 
-import httplib2
 import json
 import urllib
 
+import httplib2
 from cachetools import cached, TTLCache
+
 from pyopensprinkler.device import Device
 from pyopensprinkler.program import Program
 from pyopensprinkler.station import Station
@@ -23,50 +24,33 @@ class OpenSprinkler(object):
 
         self.device = Device(self)
 
-        self.getPrograms()
-        self.getStations()
-
-    def _request(self, path, params={}):
+    def request(self, path, params=None):
+        if params is None:
+            params = {}
         """Make a request from the API."""
-        params['pw'] = self._md5password
+        params["pw"] = self._md5password
         qs = urllib.parse.urlencode(params)
 
         url = f"{'/'.join([self._baseUrl, path])}?{qs}"
-        return self._requestHttp(url)
+        return self.request_http(url)
 
     @cached(cache=TTLCache(maxsize=32, ttl=1))
-    def _requestHttp(self, url):
-        (resp, content) = _HTTP.request(url, 'GET')
+    def request_http(self, url):
+        (resp, content) = _HTTP.request(url, "GET")
         # TODO: check resp for errors
+        content = json.loads(content.decode("UTF-8"))
+        return resp, content
 
-        content = json.loads(content.decode('UTF-8'))
-
-        return (resp, content)
-
-    def getPrograms(self):
+    @property
+    def programs(self):
         """Retrieve programs"""
-        (resp, content) = self._request('jp')
+        (resp, content) = self.request("jp")
+        return [Program(self, program, i) for i, program in enumerate(content["pd"])]
 
-        self._programs = []
-        for i, program in enumerate(content['pd']):
-            self._programs.append(Program(self, program, i))
-
-        return self._programs
-
-    def getProgram(self, index):
-        """Retrieve program"""
-        return self._programs[index]
-
-    def getStations(self):
+    @property
+    def stations(self):
         """Retrieve stations"""
-        (resp, content) = self._request('jn')
-
-        self._stations = []
-        for i, station in enumerate(content['snames']):
-            self._stations.append(Station(self, station, i))
-
-        return self._stations
-
-    def getStation(self, index):
-        """Retrieve station"""
-        return self._stations[index]
+        (resp, content) = self.request("jn")
+        return [
+            Station(self, station, i) for i, station in enumerate(content["snames"])
+        ]

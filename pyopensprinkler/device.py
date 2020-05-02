@@ -8,67 +8,76 @@ class Device(object):
         """Device class initializer."""
         self._opensprinkler = opensprinkler
 
-    def _getOption(self, option):
+    def _get_option(self, option):
         """Retrieve option"""
-        (resp, content) = self._opensprinkler._request('jo')
+        (resp, content) = self._opensprinkler.request("jo")
         return content[option]
 
-    def _getVariable(self, option):
+    def _get_variable(self, option):
         """Retrieve option"""
-        (resp, content) = self._opensprinkler._request('jc')
+        (resp, content) = self._opensprinkler.request("jc")
         return content[option]
 
-    def _setVariable(self, option, value):
+    def _set_variable(self, option, value):
         """Retrieve option"""
-        params = {}
-        params[option] = value
-        (resp, content) = self._opensprinkler._request('cv', params)
-        return content['result']
+        params = {option: value}
+        (resp, content) = self._opensprinkler.request("cv", params)
+        return content["result"]
 
-    def getFirmwareVersion(self):
+    @property
+    def firmware_version(self):
         """Retrieve firmware version"""
-        return self._getOption('fwv')
+        return self._get_option("fwv")
 
-    def getHardwareVersion(self):
+    @property
+    def hardware_version(self):
         """Retrieve hardware version"""
-        return self._getOption('hwv')
+        return self._get_option("hwv")
 
-    def getLastRun(self):
+    @property
+    def last_run(self):
         """Retrieve hardware version"""
-        return self._getVariable('lrun')[3]
+        return self._get_variable("lrun")[3]
 
-    def getRainDelay(self):
+    @property
+    def rain_delay(self):
         """Retrieve rain delay"""
-        return self._getVariable('rd')
+        return self._get_variable("rd")
 
-    def getRainDelayStopTime(self):
+    @property
+    def rain_delay_stop_time(self):
         """Retrieve rain delay stop time"""
-        return self._getVariable('rdst')
+        return self._get_variable("rdst")
 
-    def getRainSensor1(self):
+    @property
+    def rain_sensor_1(self):
         """Retrieve hardware version"""
-        return self._getVariable('sn1')
+        return self._get_variable("sn1")
 
-    def getRainSensor2(self):
+    @property
+    def rain_sensor_2(self):
         """Retrieve hardware version"""
-        return self._getVariable('sn2')
+        return self._get_variable("sn2")
 
-    def getRainSensorLegacy(self):
+    @property
+    def rain_sensor_legacy(self):
         """Retrieve hardware version"""
-        return self._getVariable('rs')
+        return self._get_variable("rs")
 
-    def getOperationEnabled(self):
+    @property
+    def operation_enabled(self):
         """Retrieve operation enabled"""
-        return self._getVariable('en')
+        return self._get_variable("en")
 
-    def getWaterLevel(self):
+    @property
+    def water_level(self):
         """Retrieve water level"""
-        return self._getOption('wl')
+        return self._get_option("wl")
 
     def enable(self):
         """Enable operation"""
-        return self._setVariable('en', 1)
+        return self._set_variable("en", 1)
 
     def disable(self):
         """Disable operation"""
-        return self._setVariable('en', 0)
+        return self._set_variable("en", 0)

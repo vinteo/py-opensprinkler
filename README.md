@@ -14,43 +14,37 @@ pip install pyopensprinkler
 from pyopensprinkler import OpenSprinkler
 
 os = OpenSprinkler("hostname:port", "md5password")
-version = os.device.getFirmwareVersion()
+version = os.device.firmware_version()
 ```
 
 ## Commands
 
-`os.getPrograms()`
+`os.programs`
 
-`os.getProgram(index)`
-Index starts from 0
-
-`os.getStations()`
-
-`os.getStation(index)`
-Index starts from 0
+`os.stations`
 
 ### Device
 
-`os.device.getFirmwareVersion()`
+`os.device.firmware_version`
 
-`os.device.getHardwareVersion()`
+`os.device.hardware_version`
 
-`os.device.getLastRun()`
+`os.device.last run`
 
-`os.device.getRainDelay()`
+`os.device.get_rain_delay`
 
-`os.device.getRainDelayStopTime()`
+`os.device.rain_delay_stop_time`
 
-`os.device.getRainSensor1()`
+`os.device.rain_sensor_1`
 
-`os.device.getRainSensor2()`
+`os.device.rain_sensor_2`
 
-`os.device.getRainSensorLegacy()`
+`os.device.rain_sensor_legacy`
 Rain sensor for firmware version <= 2.1.7
 
-`os.device.getOperationEnabled()`
+`os.device.operation_enabled`
 
-`os.device.getWaterLevel()`
+`os.device.water_level`
 
 `os.device.enable()`
 
@@ -59,14 +53,13 @@ Rain sensor for firmware version <= 2.1.7
 ### Programs
 
 ```python
-programs = os.getPrograms()
-isEnabled = program[0].getEnabled()
+is_enabled = os.programs[0].enabled
 
-program = os.getProgram(0)
+program = os.programs[0]
 program.run()
 ```
 
-`program.getEnabled()`
+`program.enabled`
 
 `program.enable()`
 
@@ -77,18 +70,16 @@ program.run()
 ### Stations
 
 ```python
-stations = os.getStations()
-isEnabled = stations[0].getStatus()
-
-station = os.getStation(0)
+isEnabled = os.stations[0].status
+station = os.station[0]
 station.run(120)
 ```
 
-`station.getIsRunning()`
+`station.is_running`
 
-`station.getRunningProgramId()`
+`station.running_program_id`
 
-`station.getStatus()`
+`station.status`
 
 `station.run(seconds)`
  Acceptable range for seconds is 0 to 64800 (18 hours)
