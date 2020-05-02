@@ -20,7 +20,7 @@ class Station(object):
         """Station index"""
         return self._index
 
-    def _getStatusVariable(self, statusIndex):
+    def _get_status_variable(self, statusIndex):
         """Retrieve seconds remaining"""
         (resp, content) = self._opensprinkler.request("jc")
         return content["ps"][self._index][statusIndex]
@@ -42,17 +42,17 @@ class Station(object):
     @property
     def running_program_id(self):
         """Retrieve seconds remaining"""
-        return self._getStatusVariable(0)
+        return self._get_status_variable(0)
 
     @property
     def seconds_remaining(self):
         """Retrieve seconds remaining"""
-        return self._getStatusVariable(1)
+        return self._get_status_variable(1)
 
     @property
     def status(self):
         """Retrieve status"""
-        is_running = self.is_running()
+        is_running = self.is_running
         pid = self.running_program_id
 
         if is_running == 1:
