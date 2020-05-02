@@ -10,13 +10,13 @@ class Device(object):
 
     def _get_option(self, option):
         """Retrieve option"""
-        (resp, content) = self._opensprinkler.request("jo")
-        return content[option]
+        (resp, content) = self._opensprinkler.request_cached("ja")
+        return content["options"][option]
 
     def _get_variable(self, option):
         """Retrieve option"""
-        (resp, content) = self._opensprinkler.request("jc")
-        return content[option]
+        (resp, content) = self._opensprinkler.request("ja")
+        return content["settings"][option]
 
     def _set_variable(self, option, value):
         """Retrieve option"""

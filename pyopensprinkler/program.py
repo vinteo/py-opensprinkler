@@ -22,8 +22,8 @@ class Program(object):
 
     def _get_variable(self, variable_index):
         """Retrieve option"""
-        (resp, content) = self._opensprinkler.request("jp")
-        return content["pd"][self._index][variable_index]
+        (resp, content) = self._opensprinkler.request("ja")
+        return content["programs"]["pd"][self._index][variable_index]
 
     def _set_variable(self, option, value):
         """Set option"""
