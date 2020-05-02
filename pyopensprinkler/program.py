@@ -28,6 +28,12 @@ class Program(object):
     def _set_variable(self, option, value):
         """Set option"""
         params = {"pid": self._index, option: value}
+        (resp, content) = self._opensprinkler.request("cp", params)
+        return content["result"]
+
+    def _activate(self):
+        """Run program"""
+        params = {"pid": self._index, "uwt": 0}
         (resp, content) = self._opensprinkler.request("mp", params)
         return content["result"]
 
@@ -46,4 +52,4 @@ class Program(object):
 
     def run(self):
         """Run program"""
-        return self._set_variable("uwt", 0)
+        return self._activate()
