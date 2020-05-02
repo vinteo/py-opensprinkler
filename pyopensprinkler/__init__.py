@@ -36,14 +36,14 @@ class OpenSprinkler(object):
         url = f"{'/'.join([self._baseUrl, path])}?{qs}"
         return self.request_http(url)
 
-    @cached(cache=TTLCache(maxsize=4, ttl=15))
+    @cached(cache=TTLCache(maxsize=4, ttl=60))
     def request_cached(self, path, params=None):
         return self.request(path, params)
 
     @on_exception(expo, Exception, max_tries=3)
     @sleep_and_retry
-    @limits(calls=16, period=2)
-    @cached(cache=TTLCache(maxsize=16, ttl=2))
+    @limits(calls=16, period=1)
+    @cached(cache=TTLCache(maxsize=32, ttl=2))
     def request_http(self, url):
         (resp, content) = _HTTP.request(url, "GET")
         # TODO: check resp for errors
