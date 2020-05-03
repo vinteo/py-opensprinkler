@@ -23,6 +23,9 @@ version = os.device.firmware_version()
 
 `os.stations`
 
+`os.update`
+Refreshes programs and stations
+
 ### Device
 
 `os.device.firmware_version`

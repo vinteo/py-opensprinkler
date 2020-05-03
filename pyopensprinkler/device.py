@@ -7,6 +7,8 @@ class Device(object):
     def __init__(self, opensprinkler):
         """Device class initializer."""
         self._opensprinkler = opensprinkler
+        self._firmware_version = self._get_option("fwv")
+        self._hardware_version = self._get_option("hwv")
 
     def _get_option(self, option):
         """Retrieve option"""
@@ -27,12 +29,12 @@ class Device(object):
     @property
     def firmware_version(self):
         """Retrieve firmware version"""
-        return self._get_option("fwv")
+        return self._firmware_version
 
     @property
     def hardware_version(self):
         """Retrieve hardware version"""
-        return self._get_option("hwv")
+        return self._hardware_version
 
     @property
     def last_run(self):

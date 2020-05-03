@@ -23,8 +23,11 @@ class OpenSprinkler(object):
         self._host = host
         self._md5password = md5password
         self._baseUrl = f"http://{self._host}"
+        self._programs = []
+        self._stations = []
 
         self.device = Device(self)
+        self.update()
 
     def request(self, path, params=None):
         if params is None:
@@ -50,20 +53,33 @@ class OpenSprinkler(object):
         content = json.loads(content.decode("UTF-8"))
         return resp, content
 
-    @property
-    def programs(self):
+    def get_programs(self):
         """Retrieve programs"""
-        (resp, content) = self.request_cached("ja")
+        (resp, content) = self.request("ja")
         return [
             Program(self, program, i)
             for i, program in enumerate(content["programs"]["pd"])
         ]
 
-    @property
-    def stations(self):
+    def get_stations(self):
         """Retrieve stations"""
-        (resp, content) = self.request_cached("ja")
+        (resp, content) = self.request("ja")
         return [
             Station(self, station, i)
             for i, station in enumerate(content["stations"]["snames"])
         ]
+
+    def update(self):
+        """Update programs and stations"""
+        self._programs = self.get_programs()
+        self._stations = self.get_stations()
+
+    @property
+    def programs(self):
+        """Return programs"""
+        return self._programs
+
+    @property
+    def stations(self):
+        """Return stations"""
+        return self._stations
