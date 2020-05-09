@@ -4,6 +4,7 @@ import json
 import urllib
 
 import httplib2
+from backoff import expo, on_exception
 
 from pyopensprinkler.device import Device
 from pyopensprinkler.program import Program
@@ -37,6 +38,7 @@ class OpenSprinkler(object):
         url = f"{'/'.join([self._baseUrl, path])}?{qs}"
         return self.request_http(url)
 
+    @on_exception(expo, Exception, max_tries=3)
     def request_http(self, url):
         try:
             (resp, content) = _HTTP.request(url, "GET")
