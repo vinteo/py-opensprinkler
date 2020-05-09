@@ -48,10 +48,20 @@ class OpenSprinkler(object):
     @limits(calls=32, period=1)
     @cached(cache=TTLCache(maxsize=64, ttl=2))
     def request_http(self, url):
-        (resp, content) = _HTTP.request(url, "GET")
-        # TODO: check resp for errors
-        content = json.loads(content.decode("UTF-8"))
-        return resp, content
+        try:
+            (resp, content) = _HTTP.request(url, "GET")
+            content = json.loads(content.decode("UTF-8"))
+
+            if len(content) == 1 and content["fwv"]:
+                raise OpensprinklerAuthError("Invalid MD5 password")
+
+            return resp, content
+        except httplib2.HttpLib2Error as exc:
+            raise OpensprinklerConnectionError("Cannot connect to device") from exc
+        except ConnectionError as exc:
+            raise OpensprinklerConnectionError("Cannot connect to device") from exc
+        except KeyError as exc:
+            raise OpensprinklerAuthError("Invalid MD5 password") from exc
 
     def get_programs(self):
         """Retrieve programs"""
@@ -83,3 +93,11 @@ class OpenSprinkler(object):
     def stations(self):
         """Return stations"""
         return self._stations
+
+
+class OpensprinklerAuthError(Exception):
+    """Exception for authentication error."""
+
+
+class OpensprinklerConnectionError(Exception):
+    """Exception for connection error."""
