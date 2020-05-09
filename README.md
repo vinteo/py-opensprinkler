@@ -23,8 +23,11 @@ version = os.device.firmware_version()
 
 `os.stations`
 
-`os.update`
-Refreshes programs and stations
+`os.update()`
+Refreshes state, programs and stations
+
+`os.update_state()`
+Refreshes state
 
 ### Device
 
@@ -56,6 +59,7 @@ Rain sensor for firmware version <= 2.1.7
 ### Programs
 
 ```python
+os.update_state()
 is_enabled = os.programs[0].enabled
 
 program = os.programs[0]
@@ -73,6 +77,7 @@ program.run()
 ### Stations
 
 ```python
+os.update_state()
 isEnabled = os.stations[0].status
 station = os.station[0]
 station.run(120)

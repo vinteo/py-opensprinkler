@@ -7,34 +7,31 @@ class Device(object):
     def __init__(self, opensprinkler):
         """Device class initializer."""
         self._opensprinkler = opensprinkler
-        self._firmware_version = self._get_option("fwv")
-        self._hardware_version = self._get_option("hwv")
 
     def _get_option(self, option):
         """Retrieve option"""
-        (resp, content) = self._opensprinkler.request_cached("ja")
-        return content["options"][option]
+        return self._opensprinkler._state["options"][option]
 
     def _get_variable(self, option):
         """Retrieve option"""
-        (resp, content) = self._opensprinkler.request("ja")
-        return content["settings"][option]
+        return self._opensprinkler._state["settings"][option]
 
     def _set_variable(self, option, value):
         """Retrieve option"""
         params = {option: value}
         (resp, content) = self._opensprinkler.request("cv", params)
+        self._opensprinkler.update_state()
         return content["result"]
 
     @property
     def firmware_version(self):
         """Retrieve firmware version"""
-        return self._firmware_version
+        return self._get_option("fwv")
 
     @property
     def hardware_version(self):
         """Retrieve hardware version"""
-        return self._hardware_version
+        return self._get_option("hwv")
 
     @property
     def last_run(self):

@@ -22,19 +22,20 @@ class Program(object):
 
     def _get_variable(self, variable_index):
         """Retrieve option"""
-        (resp, content) = self._opensprinkler.request("ja")
-        return content["programs"]["pd"][self._index][variable_index]
+        return self._opensprinkler._state["programs"]["pd"][self._index][variable_index]
 
     def _set_variable(self, option, value):
         """Set option"""
         params = {"pid": self._index, option: value}
         (resp, content) = self._opensprinkler.request("cp", params)
+        self._opensprinkler.update_state()
         return content["result"]
 
     def _activate(self):
         """Run program"""
         params = {"pid": self._index, "uwt": 0}
         (resp, content) = self._opensprinkler.request("mp", params)
+        self._opensprinkler.update_state()
         return content["result"]
 
     @property

@@ -22,8 +22,7 @@ class Station(object):
 
     def _get_status_variable(self, statusIndex):
         """Retrieve seconds remaining"""
-        (resp, content) = self._opensprinkler.request("ja")
-        return content["settings"]["ps"][self._index][statusIndex]
+        return self._opensprinkler._state["settings"]["ps"][self._index][statusIndex]
 
     def _set_variables(self, params=None):
         """Set option"""
@@ -31,13 +30,13 @@ class Station(object):
             params = {}
         params["sid"] = self._index
         (resp, content) = self._opensprinkler.request("cm", params)
+        self._opensprinkler.update_state()
         return content["result"]
 
     @property
     def is_running(self):
         """Retrieve is running flag"""
-        (resp, content) = self._opensprinkler.request("ja")
-        return content["status"]["sn"][self._index]
+        return self._opensprinkler._state["status"]["sn"][self._index]
 
     @property
     def running_program_id(self):
