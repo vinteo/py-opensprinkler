@@ -30,20 +30,28 @@ class Program(object):
         """Set option"""
         params = {"pid": self._index, option: value}
         (_, content) = self._controller.request("/cp", params)
-        self._controller.update_state()
         return content["result"]
 
-    def _activate(self):
+    def _manual_run(self):
         """Run program"""
         params = {"pid": self._index, "uwt": 0}
         (_, content) = self._controller.request("/mp", params)
-        self._controller.update_state()
         return content["result"]
+
+    def _get_data_bits(self):
+        return list(reversed([int(x) for x in list('{0:08b}'.format(self._get_variable(0)))]))
 
     @property
     def enabled(self):
         """Retrieve enabled flag"""
-        return int("{0:08b}".format(self._get_variable(0))[7])
+        bits = self._get_data_bits()
+        return bool(bits[0])
+
+    @property
+    def use_weather_adjustments(self):
+        """Retrieve use weather adjustment flag"""
+        bits = self._get_data_bits()
+        return bool(bits[1])
 
     def enable(self):
         """Enable operation"""
@@ -55,4 +63,4 @@ class Program(object):
 
     def run(self):
         """Run program"""
-        return self._activate()
+        return self._manual_run()

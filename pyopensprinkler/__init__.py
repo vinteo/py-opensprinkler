@@ -14,15 +14,16 @@ from pyopensprinkler.station import Station
 class Controller(object):
     """OpenSprinkler Controller"""
 
-    def __init__(self, url, password, client_opts=None):
+    def __init__(self, url, password, opts=None):
         """OpenSprinkler Controller initializer."""
 
-        if client_opts is None:
-            client_opts = {}
+        if opts is None:
+            opts = {}
 
         self._password = password
         self._md5password = hashlib.md5(password.encode('utf-8')).hexdigest()
         self._baseUrl = url.strip("/")
+        self._opts = opts
         self._programs = {}
         self._stations = {}
         self._state = None
@@ -30,11 +31,14 @@ class Controller(object):
         client = httplib2.Http()
         client.follow_all_redirects = True
 
-        if client_opts.http_username is not None:
-            client.add_credentials(client_opts.http_username, client_opts.http_password)
+        if 'auto_refresh_on_update' not in opts:
+            opts['auto_refresh_on_update'] = True
 
-        if client_opts.verify_ssl is not None:
-            client.disable_ssl_certificate_validation = not client_opts.verify_ssl
+        if 'http_username' in opts:
+            client.add_credentials(opts.http_username, opts.http_password)
+
+        if 'verify_ssl' in opts:
+            client.disable_ssl_certificate_validation = not opts.verify_ssl
 
         self._http_client = client
 
@@ -44,14 +48,22 @@ class Controller(object):
         """Make a request to the API."""
         params["pw"] = self._md5password
         qs = urllib.parse.urlencode(params)
-        url = '{}{}?{}'.format(self._baseUrl, path, qs)
+        url = f"{self._baseUrl}{path}?{qs}"
 
-        return self.request_http(url)
+        (resp, content) = self.request_http(url)
+
+        update_paths = ["/cv", "/co", "/cs", "/cm", "/mp", "/cp", "/dp", "/up", "/cr"]
+        if self._opts['auto_refresh_on_update'] and path in update_paths:
+            self.refresh()
+
+        return resp, content
 
     @on_exception(expo, Exception, max_tries=3)
     def request_http(self, url):
         try:
+            print(url)
             (resp, content) = self._http_client.request(url, "GET")
+            print(content)
             content = json.loads(content.decode("UTF-8"))
 
             if len(content) == 1 and not content["result"] and content["fwv"]:
@@ -68,30 +80,30 @@ class Controller(object):
     def get_programs(self):
         """Retrieve programs"""
         if self._state is None:
-            self.update()
+            self.refresh()
 
         return self._programs
 
     def get_stations(self):
         """Retrieve stations"""
         if self._state is None:
-            self.update()
+            self.refresh()
 
         return self._stations
 
-    def update(self):
-        """Update programs and stations"""
-        self.update_state()
+    def refresh(self):
+        """Refresh programs and stations"""
+        self.refresh_state()
 
         for i, _ in enumerate(self._state["programs"]["pd"]):
-            if self._programs[i] is None:
+            if i not in self._programs:
                 self._programs[i] = Program(self, i)
 
         for i, _ in enumerate(self._state["stations"]["snames"]):
-            if self._stations[i] is None:
+            if i not in self._stations:
                 self._stations[i] = Station(self, i)
 
-    def update_state(self):
+    def refresh_state(self):
         (_, content) = self.request("/ja")
         self._state = content
 
@@ -99,16 +111,47 @@ class Controller(object):
         """Retrieve option"""
         return self._state["options"][option]
 
+    def _get_options(self):
+        """Retrieve options"""
+        return self._state["options"]
+
+    def _set_option(self, option, value):
+        """Set option"""
+        params = {option: value}
+        (_, content) = self.request("/co", params)
+        return content["result"]
+
+    def _set_options(self, options):
+        """Set options"""
+        (_, content) = self.request("/co", options)
+        return content["result"]
+
     def _get_variable(self, option):
-        """Retrieve option"""
+        """Retrieve variable"""
         return self._state["settings"][option]
 
-    def _set_variable(self, option, value):
-        """Retrieve option"""
-        params = {option: value}
+    def _get_variables(self):
+        """Retrieve variables"""
+        return self._state["settings"]
+
+    def _set_variable(self, variable, value):
+        """Set variable"""
+        params = {variable: value}
         (_, content) = self.request("/cv", params)
-        self.update_state()
         return content["result"]
+
+    def _set_variables(self, variables):
+        """Set variables"""
+        (_, content) = self.request("/cv", variables)
+        return content["result"]
+
+    def enable(self):
+        """Enable operation"""
+        return self._set_variable("en", 1)
+
+    def disable(self):
+        """Disable operation"""
+        return self._set_variable("en", 0)
 
     @property
     def firmware_version(self):
@@ -169,14 +212,6 @@ class Controller(object):
     def stations(self):
         """Return stations"""
         return self._stations
-
-    def enable(self):
-        """Enable operation"""
-        return self._set_variable("en", 1)
-
-    def disable(self):
-        """Disable operation"""
-        return self._set_variable("en", 0)
 
 
 class OpenSprinklerAuthError(Exception):
