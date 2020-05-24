@@ -4,38 +4,40 @@
 class Program(object):
     """Program class with /program/ API calls."""
 
-    def __init__(self, opensprinkler, program, index):
+    def __init__(self, controller, index):
         """Program class initializer."""
-        self._opensprinkler = opensprinkler
-        self._program = program
+        self._controller = controller
         self._index = index
 
     @property
     def name(self):
         """Program name"""
-        return self._program[5]
+        return self._get_variable(5)
 
     @property
     def index(self):
         """Program index"""
         return self._index
 
+    def _get_program_data(self):
+        return self._controller._state["programs"]["pd"][self._index]
+
     def _get_variable(self, variable_index):
         """Retrieve option"""
-        return self._opensprinkler._state["programs"]["pd"][self._index][variable_index]
+        return self._get_program_data()[variable_index]
 
     def _set_variable(self, option, value):
         """Set option"""
         params = {"pid": self._index, option: value}
-        (resp, content) = self._opensprinkler.request("cp", params)
-        self._opensprinkler.update_state()
+        (_, content) = self._controller.request("/cp", params)
+        self._controller.update_state()
         return content["result"]
 
     def _activate(self):
         """Run program"""
         params = {"pid": self._index, "uwt": 0}
-        (resp, content) = self._opensprinkler.request("mp", params)
-        self._opensprinkler.update_state()
+        (_, content) = self._controller.request("/mp", params)
+        self._controller.update_state()
         return content["result"]
 
     @property

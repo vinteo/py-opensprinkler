@@ -4,16 +4,15 @@
 class Station(object):
     """Station class with /station/ API calls."""
 
-    def __init__(self, opensprinkler, station, index):
+    def __init__(self, controller, index):
         """Station class initializer."""
-        self._opensprinkler = opensprinkler
-        self._station = station
+        self._controller = controller
         self._index = index
 
     @property
     def name(self):
         """Station name"""
-        return self._station
+        return self._controller._state["stations"]["snames"][self._index]
 
     @property
     def index(self):
@@ -22,21 +21,21 @@ class Station(object):
 
     def _get_status_variable(self, statusIndex):
         """Retrieve seconds remaining"""
-        return self._opensprinkler._state["settings"]["ps"][self._index][statusIndex]
+        return self._controller._state["settings"]["ps"][self._index][statusIndex]
 
     def _set_variables(self, params=None):
         """Set option"""
         if params is None:
             params = {}
         params["sid"] = self._index
-        (resp, content) = self._opensprinkler.request("cm", params)
-        self._opensprinkler.update_state()
+        (_, content) = self._controller.request("/cm", params)
+        self._controller.update_state()
         return content["result"]
 
     @property
     def is_running(self):
         """Retrieve is running flag"""
-        return self._opensprinkler._state["status"]["sn"][self._index]
+        return self._controller._state["status"]["sn"][self._index]
 
     @property
     def running_program_id(self):
