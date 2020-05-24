@@ -52,6 +52,7 @@ class Station(object):
 
     def toggle(self):
         """Toggle station"""
+        self._controller.refresh()
         if self.is_running:
             return self.stop()
         else:

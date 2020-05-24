@@ -9,16 +9,6 @@ class Program(object):
         self._controller = controller
         self._index = index
 
-    @property
-    def name(self):
-        """Program name"""
-        return self._get_variable(5)
-
-    @property
-    def index(self):
-        """Program index"""
-        return self._index
-
     def _get_program_data(self):
         return self._controller._state["programs"]["pd"][self._index]
 
@@ -41,6 +31,28 @@ class Program(object):
     def _get_data_bits(self):
         return list(reversed([int(x) for x in list('{0:08b}'.format(self._get_variable(0)))]))
 
+    def enable(self):
+        """Enable operation"""
+        return self._set_variable("en", 1)
+
+    def disable(self):
+        """Disable operation"""
+        return self._set_variable("en", 0)
+
+    def run(self):
+        """Run program"""
+        return self._manual_run()
+
+    @property
+    def name(self):
+        """Program name"""
+        return self._get_variable(5)
+
+    @property
+    def index(self):
+        """Program index"""
+        return self._index
+
     @property
     def enabled(self):
         """Retrieve enabled flag"""
@@ -53,14 +65,71 @@ class Program(object):
         bits = self._get_data_bits()
         return bool(bits[1])
 
-    def enable(self):
-        """Enable operation"""
-        return self._set_variable("en", 1)
+    @property
+    def odd_even_restriction(self):
+        """Retrieve odd/even restriction state"""
+        bit2 = bool(self._get_data_bits()[2])
+        bit3 = bool(self._get_data_bits()[3])
 
-    def disable(self):
-        """Disable operation"""
-        return self._set_variable("en", 0)
+        value = 0
+        if bit2:
+            value += 1
 
-    def run(self):
-        """Run program"""
-        return self._manual_run()
+        if bit3:
+            value += 2
+
+        return value
+
+    @property
+    def odd_even_restriction_name(self):
+        value = self.odd_even_restriction
+
+        if value == 0 or value == 3:
+            return None
+
+        if value == 1:
+            return "odd-day"
+
+        if value == 2:
+            return "even-day"
+
+    @property
+    def program_schedule_type(self):
+        """Retrieve program schedule type state"""
+        bit4 = bool(self._get_data_bits()[4])
+        bit5 = bool(self._get_data_bits()[5])
+
+        value = 0
+        if bit4:
+            value += 1
+
+        if bit5:
+            value += 2
+
+        return value
+
+    @property
+    def program_schedule_type_name(self):
+        value = self.program_schedule_type
+
+        if value == 0:
+            return "weekday"
+
+        if value == 3:
+            return "interval-day"
+
+        return None
+
+    @property
+    def start_time_type(self):
+        return self._get_data_bits()[6]
+
+    @property
+    def start_time_type_name(self):
+        value = self.start_time_type
+
+        if value == 0:
+            return "repeating"
+
+        if value == 1:
+            return "fixed-time"
