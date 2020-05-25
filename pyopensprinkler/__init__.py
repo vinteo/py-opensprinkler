@@ -21,7 +21,7 @@ class Controller(object):
             opts = {}
 
         self._password = password
-        self._md5password = hashlib.md5(password.encode('utf-8')).hexdigest()
+        self._md5password = hashlib.md5(password.encode("utf-8")).hexdigest()
         self._baseUrl = url.strip("/")
         self._opts = opts
         self._programs = {}
@@ -31,13 +31,13 @@ class Controller(object):
         client = httplib2.Http()
         client.follow_all_redirects = True
 
-        if 'auto_refresh_on_update' not in opts:
-            opts['auto_refresh_on_update'] = True
+        if "auto_refresh_on_update" not in opts:
+            opts["auto_refresh_on_update"] = True
 
-        if 'http_username' in opts:
+        if "http_username" in opts:
             client.add_credentials(opts.http_username, opts.http_password)
 
-        if 'verify_ssl' in opts:
+        if "verify_ssl" in opts:
             client.disable_ssl_certificate_validation = not opts.verify_ssl
 
         self._http_client = client
@@ -53,7 +53,7 @@ class Controller(object):
         (resp, content) = self.request_http(url)
 
         update_paths = ["/cv", "/co", "/cs", "/cm", "/mp", "/cp", "/dp", "/up", "/cr"]
-        if self._opts['auto_refresh_on_update'] and path in update_paths:
+        if self._opts["auto_refresh_on_update"] and path in update_paths:
             self.refresh()
 
         return resp, content

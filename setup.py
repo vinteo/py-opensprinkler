@@ -15,8 +15,8 @@ project_urls = {"Bug Reports": f"{github_url}/issues"}
 setup(
     name="pyopensprinkler",
     version=version,
-    author="Vincent Teo",
-    author_email="vinteo@gmail.com",
+    author="Vincent Teo, Travis Glenn Hansen",
+    author_email="vinteo@gmail.com, travisghansen@yahoo.com",
     packages=["pyopensprinkler"],
     install_requires=["httplib2==0.18.1", "backoff==1.10.0"],
     url=github_url,

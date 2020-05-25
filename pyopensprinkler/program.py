@@ -29,7 +29,9 @@ class Program(object):
         return content["result"]
 
     def _get_data_bits(self):
-        return list(reversed([int(x) for x in list('{0:08b}'.format(self._get_variable(0)))]))
+        return list(
+            reversed([int(x) for x in list("{0:08b}".format(self._get_variable(0)))])
+        )
 
     def enable(self):
         """Enable operation"""

@@ -35,8 +35,8 @@ class Station(object):
         # each entry is for next block of 8 stations
         bits = self._controller._state["stations"][bit_property]
         bank = math.floor(self._index / 8)
-        bits = list(reversed([int(x) for x in list('{0:08b}'.format(bits[bank]))]))
-        position = (self._index % 8)
+        bits = list(reversed([int(x) for x in list("{0:08b}".format(bits[bank]))]))
+        position = self._index % 8
 
         return bool(bits[position])
 
@@ -93,40 +93,40 @@ class Station(object):
         return self._controller._state["stations"]["maxlen"]
 
     @property
-    def masop(self):
+    def master_1_operation(self):
         return self._bit_check("masop")
 
     @property
-    def masop2(self):
+    def master_2_operation(self):
         return self._bit_check("masop2")
 
     @property
-    def ignore_rain(self):
+    def rain_delay_ignored(self):
         return self._bit_check("ignore_rain")
 
     @property
-    def ignore_sn1(self):
+    def sensor_1_ignored(self):
         return self._bit_check("ignore_sn1")
 
     @property
-    def ignore_sn2(self):
+    def sensor_2_ignored(self):
         return self._bit_check("ignore_sn2")
 
     @property
-    def stn_dis(self):
+    def disabled(self):
         return self._bit_check("stn_dis")
 
     @property
-    def stn_seq(self):
+    def sequential_operation(self):
         return self._bit_check("stn_seq")
 
     @property
-    def stn_spe(self):
+    def special(self):
         return self._bit_check("stn_spe")
 
     @property
     def station_type(self):
-        if not self.stn_spe:
+        if not self.special:
             return "standard"
 
         # TODO: fetch the /je endpoint and return as appropriate
