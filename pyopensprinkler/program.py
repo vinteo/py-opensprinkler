@@ -64,9 +64,13 @@ class Program(object):
     @property
     def is_running(self):
         for _, station in self._controller.stations.items():
-            if station.is_running and station.running_program_id > 0 and station.running_program_id == self.index + 1:
+            if (
+                station.is_running
+                and station.running_program_id > 0
+                and station.running_program_id == self.index + 1
+            ):
                 return True
-        
+
         return False
 
     @property

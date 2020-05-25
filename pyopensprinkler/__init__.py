@@ -198,7 +198,6 @@ class Controller(object):
         """Retrieve sensor 2 enabled"""
         return bool(self._get_variable("sn2"))
 
-
     @property
     def operation_enabled(self):
         """Retrieve operation enabled"""
