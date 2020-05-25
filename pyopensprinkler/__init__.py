@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import time
 import urllib
 
 import httplib2
@@ -32,7 +33,13 @@ class Controller(object):
         client.follow_all_redirects = True
 
         if "auto_refresh_on_update" not in opts:
-            opts["auto_refresh_on_update"] = True
+            opts["auto_refresh_on_update"] = {}
+
+        if "enabled" not in opts["auto_refresh_on_update"]:
+            opts["auto_refresh_on_update"]["enabled"] = True
+        
+        if "settle_time" not in opts["auto_refresh_on_update"]:
+            opts["auto_refresh_on_update"]["settle_time"] = 1
 
         if "http_username" in opts:
             client.add_credentials(opts.http_username, opts.http_password)
@@ -53,7 +60,13 @@ class Controller(object):
         (resp, content) = self.request_http(url)
 
         update_paths = ["/cv", "/co", "/cs", "/cm", "/mp", "/cp", "/dp", "/up", "/cr"]
-        if self._opts["auto_refresh_on_update"] and path in update_paths:
+        if self._opts["auto_refresh_on_update"]["enabled"] and path in update_paths:
+            #  .1 was not enough settle time
+            # .25 was mostly good but still too fast at times
+            #  .5 was mostly good but still too fast at times
+            # .75 was mostly good but still too fast at times
+            #   1 was consistant
+            time.sleep(float(self._opts["auto_refresh_on_update"]["settle_time"]))
             self.refresh()
 
         return resp, content
@@ -186,7 +199,7 @@ class Controller(object):
         try:
             return bool(self._get_variable("rs"))
         except KeyError:
-            return False
+            return None
 
     @property
     def sensor_1_enabled(self):
