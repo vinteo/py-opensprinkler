@@ -75,7 +75,11 @@ class Station(object):
 
     @property
     def running_program_id(self):
-        """Retrieve seconds remaining"""
+        """
+        Retrieve seconds remaining
+
+        Note this value is 1 indexed
+        """
         return self._get_status_variable(0)
 
     @property
@@ -93,11 +97,11 @@ class Station(object):
         return self._controller._state["stations"]["maxlen"]
 
     @property
-    def master_1_operation(self):
+    def master_1_operation_enabled(self):
         return self._bit_check("masop")
 
     @property
-    def master_2_operation(self):
+    def master_2_operation_enabled(self):
         return self._bit_check("masop2")
 
     @property

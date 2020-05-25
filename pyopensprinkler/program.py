@@ -62,6 +62,14 @@ class Program(object):
         return bool(bits[0])
 
     @property
+    def is_running(self):
+        for _, station in self._controller.stations.items():
+            if station.is_running and station.running_program_id > 0 and station.running_program_id == self.index + 1:
+                return True
+        
+        return False
+
+    @property
     def use_weather_adjustments(self):
         """Retrieve use weather adjustment flag"""
         bits = self._get_data_bits()

@@ -61,9 +61,7 @@ class Controller(object):
     @on_exception(expo, Exception, max_tries=3)
     def request_http(self, url):
         try:
-            print(url)
             (resp, content) = self._http_client.request(url, "GET")
-            print(content)
             content = json.loads(content.decode("UTF-8"))
 
             if len(content) == 1 and not content["result"] and content["fwv"]:
@@ -74,26 +72,14 @@ class Controller(object):
             raise OpenSprinklerConnectionError("Cannot connect to controller") from exc
         except ConnectionError as exc:
             raise OpenSprinklerConnectionError("Cannot connect to controller") from exc
+        except json.decoder.JSONDecodeError as exc:
+            raise OpenSprinklerConnectionError("Cannot connect to controller") from exc
         except KeyError as exc:
             raise OpenSprinklerAuthError("Invalid password") from exc
 
-    def get_programs(self):
-        """Retrieve programs"""
-        if self._state is None:
-            self.refresh()
-
-        return self._programs
-
-    def get_stations(self):
-        """Retrieve stations"""
-        if self._state is None:
-            self.refresh()
-
-        return self._stations
-
     def refresh(self):
         """Refresh programs and stations"""
-        self.refresh_state()
+        self._refresh_state()
 
         for i, _ in enumerate(self._state["programs"]["pd"]):
             if i not in self._programs:
@@ -103,7 +89,7 @@ class Controller(object):
             if i not in self._stations:
                 self._stations[i] = Station(self, i)
 
-    def refresh_state(self):
+    def _refresh_state(self):
         (_, content) = self.request("/ja")
         self._state = content
 
@@ -163,15 +149,31 @@ class Controller(object):
         """Retrieve hardware version"""
         return self._get_option("hwv")
 
+    # lrun [station index, program index, duration, end time]
     @property
-    def last_run(self):
-        """Retrieve hardware version"""
+    def last_run_station(self):
+        """Retrieve last run station"""
+        return self._get_variable("lrun")[0]
+
+    @property
+    def last_run_program(self):
+        """Retrieve last run program"""
+        return self._get_variable("lrun")[1]
+
+    @property
+    def last_run_duration(self):
+        """Retrieve last run duration"""
+        return self._get_variable("lrun")[2]
+
+    @property
+    def last_run_end_time(self):
+        """Retrieve last run end time"""
         return self._get_variable("lrun")[3]
 
     @property
-    def rain_delay(self):
-        """Retrieve rain delay"""
-        return self._get_variable("rd")
+    def rain_delay_enabled(self):
+        """Retrieve rain delay enabled"""
+        return bool(self._get_variable("rd"))
 
     @property
     def rain_delay_stop_time(self):
@@ -179,19 +181,23 @@ class Controller(object):
         return self._get_variable("rdst")
 
     @property
-    def rain_sensor_1(self):
-        """Retrieve hardware version"""
-        return self._get_variable("sn1")
+    def rain_sensor_enabled(self):
+        """Retrieve rain sensor enabled"""
+        try:
+            return bool(self._get_variable("rs"))
+        except KeyError:
+            return False
 
     @property
-    def rain_sensor_2(self):
-        """Retrieve hardware version"""
-        return self._get_variable("sn2")
+    def sensor_1_enabled(self):
+        """Retrieve sensor 1 enabled"""
+        return bool(self._get_variable("sn1"))
 
     @property
-    def rain_sensor_legacy(self):
-        """Retrieve hardware version"""
-        return self._get_variable("rs")
+    def sensor_2_enabled(self):
+        """Retrieve sensor 2 enabled"""
+        return bool(self._get_variable("sn2"))
+
 
     @property
     def operation_enabled(self):
