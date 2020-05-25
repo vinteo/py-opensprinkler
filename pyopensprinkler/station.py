@@ -14,7 +14,7 @@ class Station(object):
     def _get_status_variable(self, statusIndex):
         """
         Retrieve station variable
-        
+
         Program status data: each element is a 3-field array that stores the [pid,rem,start] of a station, where
         pid is the program index (0 means none), rem is the remaining water time (in seconds), start is the start time.
         If a station is not running (sbit is 0) but has a non-zero pid, that means the station is in the queue waiting to run.
