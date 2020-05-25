@@ -37,7 +37,7 @@ class Controller(object):
 
         if "enabled" not in opts["auto_refresh_on_update"]:
             opts["auto_refresh_on_update"]["enabled"] = True
-        
+
         if "settle_time" not in opts["auto_refresh_on_update"]:
             opts["auto_refresh_on_update"]["settle_time"] = 1
 
