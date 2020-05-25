@@ -65,7 +65,7 @@ class Controller(object):
             # .25 was mostly good but still too fast at times
             #  .5 was mostly good but still too fast at times
             # .75 was mostly good but still too fast at times
-            #   1 was consistant
+            #   1 was consistently enough time
             time.sleep(float(self._opts["auto_refresh_on_update"]["settle_time"]))
             self.refresh()
 
