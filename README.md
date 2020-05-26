@@ -36,7 +36,6 @@ Disables controller operation
 
 `controller.stations`
 
-
 ### Programs
 
 ```python
@@ -70,7 +69,7 @@ station.run(120)
 `station.status`
 
 `station.run(seconds)`
- Acceptable range for seconds is 0 to 64800 (18 hours)
+Acceptable range for seconds is 0 to 64800 (18 hours)
 
 `station.stop()`
 
@@ -83,6 +82,15 @@ station.run(120)
 ```
 virtualenv .
 source bin/activate
+
+# install requirements
 pip install -r requirements.txt
+
+# install dev requirements
+pip install -r requirements-dev.txt
+
+# one-time install commit hooks
+pre-commit install
+
 deactivate
 ```
