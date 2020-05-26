@@ -11,58 +11,38 @@ pip install pyopensprinkler
 ## Usage
 
 ```python
-from pyopensprinkler import OpenSprinkler
+from pyopensprinkler import Controller as OpenSprinklerController
 
-os = OpenSprinkler("hostname:port", "md5password")
-version = os.device.firmware_version()
+controller = OpenSprinklerController("http[s]://hostname[:port]", "password")
+controller.refresh()
+
+version = controller.firmware_version
 ```
 
 ## Commands
 
-`os.programs`
+### Controller
 
-`os.stations`
-
-`os.update()`
+`controller.refresh()`
 Refreshes state, programs and stations
 
-`os.update_state()`
-Refreshes state
+`controller.enable()`
+Enabled controller operation
 
-### Device
+`controller.disable()`
+Disables controller operation
 
-`os.device.firmware_version`
+`controller.programs`
 
-`os.device.hardware_version`
+`controller.stations`
 
-`os.device.last run`
-
-`os.device.get_rain_delay`
-
-`os.device.rain_delay_stop_time`
-
-`os.device.rain_sensor_1`
-
-`os.device.rain_sensor_2`
-
-`os.device.rain_sensor_legacy`
-Rain sensor for firmware version <= 2.1.7
-
-`os.device.operation_enabled`
-
-`os.device.water_level`
-
-`os.device.enable()`
-
-`os.device.disable()`
 
 ### Programs
 
 ```python
-os.update_state()
-is_enabled = os.programs[0].enabled
+is_enabled = controller.programs[0].enabled
 
-program = os.programs[0]
+program = controller.programs[0]
 program.run()
 ```
 
@@ -77,9 +57,9 @@ program.run()
 ### Stations
 
 ```python
-os.update_state()
-isEnabled = os.stations[0].status
-station = os.station[0]
+is_enabled = controller.stations[0].enabled
+status = controller.stations[0].status
+station = controller.station[0]
 station.run(120)
 ```
 
@@ -93,3 +73,16 @@ station.run(120)
  Acceptable range for seconds is 0 to 64800 (18 hours)
 
 `station.stop()`
+
+`station.toggle()`
+
+# Development
+
+- https://openthings.freshdesk.com/support/solutions/articles/5000716363-os-api-documents
+
+```
+virtualenv .
+source bin/activate
+pip install -r requirements.txt
+deactivate
+```

@@ -28,6 +28,7 @@ class Controller(object):
         self._programs = {}
         self._stations = {}
         self._state = None
+        self.refresh_on_update = None
 
         client = httplib2.Http()
         client.follow_all_redirects = True
@@ -49,18 +50,27 @@ class Controller(object):
 
         self._http_client = client
 
-    def request(self, path, params=None):
+    def request(self, path, params=None, raw_qs=None, refresh_on_update=None):
         if params is None:
             params = {}
         """Make a request to the API."""
         params["pw"] = self._md5password
         qs = urllib.parse.urlencode(params)
+        if raw_qs is not None and len(raw_qs) > 0:
+            qs = qs + "&" + raw_qs
         url = f"{self._baseUrl}{path}?{qs}"
 
         (resp, content) = self.request_http(url)
 
+        refresh = self._opts["auto_refresh_on_update"]["enabled"]
+        if self.refresh_on_update is not None:
+            refresh = self.refresh_on_update
+
+        if refresh_on_update is not None:
+            refresh = refresh_on_update
+
         update_paths = ["/cv", "/co", "/cs", "/cm", "/mp", "/cp", "/dp", "/up", "/cr"]
-        if self._opts["auto_refresh_on_update"]["enabled"] and path in update_paths:
+        if refresh and path in update_paths:
             #  .1 was not enough settle time
             # .25 was mostly good but still too fast at times
             #  .5 was mostly good but still too fast at times
@@ -144,6 +154,7 @@ class Controller(object):
         (_, content) = self.request("/cv", variables)
         return content["result"]
 
+    # controller variables
     def enable(self):
         """Enable operation"""
         return self._set_variable("en", 1)
@@ -151,6 +162,45 @@ class Controller(object):
     def disable(self):
         """Disable operation"""
         return self._set_variable("en", 0)
+
+    def reboot(self):
+        return self._set_variable("rbt", 1)
+
+    def set_rain_delay(self, hours):
+        """
+        Set rain delay time (in hours). Range is 0 to 32767. A value of 0 turns off rain delay.
+        """
+
+        if hours < 0 or hours > 32767:
+            raise ValueError("level must be 0-32767")
+
+        return self._set_variable("rd", hours)
+
+    def disable_rain_delay(self):
+        return self._set_variable("rd", 0)
+
+    def enable_remote_extension_mode(self):
+        return self._set_variable("re", 1)
+
+    def disable_remote_extension_mode(self):
+        return self._set_variable("re", 0)
+
+    def stop_all_stations(self):
+        return self._set_variable("rsn", 1)
+
+    def firmware_update(self):
+        return self._set_variable("update", 1)
+
+    # controller options
+    def set_water_level(self, level):
+        """
+        Water level (i.e. % Watering). Acceptable range is 0 to 250.
+        """
+
+        if level < 0 or level > 250:
+            raise ValueError("level must be 0-250")
+
+        return self._set_option("wl", level)
 
     @property
     def firmware_version(self):

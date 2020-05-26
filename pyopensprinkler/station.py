@@ -29,6 +29,16 @@ class Station(object):
         (_, content) = self._controller.request("/cm", params)
         return content["result"]
 
+    def _set_attribute(self, attribute, value):
+        return self._set_attributes({attribute: value})
+
+    def _set_attributes(self, params=None):
+        if params is None:
+            params = {}
+
+        (_, content) = self._controller.request("/cs", params)
+        return content["result"]
+
     def _bit_check(self, bit_property):
         # [254, 255, 255]
         # 254 = all but first station in the first block of 8 have master1 enabled
@@ -39,6 +49,18 @@ class Station(object):
         position = self._index % 8
 
         return bool(bits[position])
+
+    def _bit_set(self, bit_property, bit_update_name, value):
+        bits = self._controller._state["stations"][bit_property]
+        bank = math.floor(self._index / 8)
+        bits = list(reversed([int(x) for x in list("{0:08b}".format(bits[bank]))]))
+        position = self._index % 8
+        value = int(value)
+        bits[position] = value
+        bits = list(reversed(bits))
+        bits = "".join(map(str, bits))
+        bits = int(bits, 2)
+        return self._set_attribute(bit_update_name + str(bank), bits)
 
     def run(self, seconds=60):
         """Run station"""
@@ -57,6 +79,71 @@ class Station(object):
             return self.stop()
         else:
             return self.run()
+
+    def set_name(self, name):
+        return self._set_attribute("s" + str(self.index), name)
+
+    def enable(self):
+        return self.set_enabled(True)
+
+    def disable(self):
+        return self.set_enabled(False)
+
+    def set_enabled(self, value):
+        bit_property = "stn_dis"
+        bit_update_name = "d"
+        if value:
+            return self._bit_set(bit_property, bit_update_name, False)
+        else:
+            return self._bit_set(bit_property, bit_update_name, True)
+
+    def set_master_1_operation_enabled(self, value):
+        bit_property = "masop"
+        bit_update_name = "m"
+        if value:
+            return self._bit_set(bit_property, bit_update_name, True)
+        else:
+            return self._bit_set(bit_property, bit_update_name, False)
+
+    def set_master_2_operation_enabled(self, value):
+        bit_property = "masop2"
+        bit_update_name = "n"
+        if value:
+            return self._bit_set(bit_property, bit_update_name, True)
+        else:
+            return self._bit_set(bit_property, bit_update_name, False)
+
+    def set_rain_delay_ignored(self, value):
+        bit_property = "ignore_rain"
+        bit_update_name = "i"
+        if value:
+            return self._bit_set(bit_property, bit_update_name, True)
+        else:
+            return self._bit_set(bit_property, bit_update_name, False)
+
+    def set_sensor_1_ignored(self, value):
+        bit_property = "ignore_sn1"
+        bit_update_name = "j"
+        if value:
+            return self._bit_set(bit_property, bit_update_name, True)
+        else:
+            return self._bit_set(bit_property, bit_update_name, False)
+
+    def set_sensor_2_ignored(self, value):
+        bit_property = "ignore_sn2"
+        bit_update_name = "k"
+        if value:
+            return self._bit_set(bit_property, bit_update_name, True)
+        else:
+            return self._bit_set(bit_property, bit_update_name, False)
+
+    def set_sequential_operation(self, value):
+        bit_property = "stn_seq"
+        bit_update_name = "q"
+        if value:
+            return self._bit_set(bit_property, bit_update_name, True)
+        else:
+            return self._bit_set(bit_property, bit_update_name, False)
 
     @property
     def name(self):
@@ -117,8 +204,8 @@ class Station(object):
         return self._bit_check("ignore_sn2")
 
     @property
-    def disabled(self):
-        return self._bit_check("stn_dis")
+    def enabled(self):
+        return not self._bit_check("stn_dis")
 
     @property
     def sequential_operation(self):
