@@ -93,3 +93,19 @@ station.run(120)
  Acceptable range for seconds is 0 to 64800 (18 hours)
 
 `station.stop()`
+
+## Developing
+
+Install dev requirements
+
+```
+pip install -r requirements-dev.txt
+```
+
+### Pre-commit Hooks
+
+Install pre-commit git hooks
+
+```
+pre-commit install
+```
