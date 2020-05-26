@@ -44,7 +44,7 @@ class Program(object):
 
         v = v.strip()
 
-        (_, content) = self._controller.request(f"/cp", params, f"v={v}")
+        (_, content) = self._controller.request("/cp", params, f"v={v}")
         return content["result"]
 
     def _manual_run(self):
