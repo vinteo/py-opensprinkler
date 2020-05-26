@@ -1,7 +1,7 @@
 """pyopensprinkler setup script."""
 from setuptools import setup
 
-version = "0.4.1"
+version = "0.5.0"
 
 github_username = "vinteo"
 github_repository = "py-opensprinkler"
@@ -15,10 +15,10 @@ project_urls = {"Bug Reports": f"{github_url}/issues"}
 setup(
     name="pyopensprinkler",
     version=version,
-    author="Vincent Teo",
-    author_email="vinteo@gmail.com",
+    author="Vincent Teo, Travis Glenn Hansen",
+    author_email="vinteo@gmail.com, travisghansen@yahoo.com",
     packages=["pyopensprinkler"],
-    install_requires=["httplib2==0.10.3", "backoff==1.10.0"],
+    install_requires=["httplib2==0.18.1", "backoff==1.10.0"],
     url=github_url,
     download_url=download_url,
     project_urls=project_urls,
