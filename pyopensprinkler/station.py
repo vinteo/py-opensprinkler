@@ -161,6 +161,15 @@ class Station(object):
         return bool(self._controller._state["status"]["sn"][self._index])
 
     @property
+    def is_master(self):
+        # stored in controller 1 indexed vs 0 indexed
+        station_id = self.index + 1
+        return (
+            self._controller.master_station_1 == station_id
+            or self._controller.master_station_2 == station_id
+        )
+
+    @property
     def running_program_id(self):
         """
         Retrieve seconds remaining
@@ -236,7 +245,10 @@ class Station(object):
             elif pid == 254:
                 state = "once_program"
             elif pid == 0:
-                state = "idle"
+                if self.is_master:
+                    state = "master_engaged"
+                else:
+                    state = "idle"
             else:
                 state = "program"
         else:

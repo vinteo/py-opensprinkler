@@ -234,6 +234,24 @@ class Controller(object):
         return self._get_variable("lrun")[3]
 
     @property
+    def master_station_1(self):
+        """
+        Retrieve master station 1
+
+        Note this value is 1 indexed, 0 means disabled
+        """
+        return self._get_option("mas")
+
+    @property
+    def master_station_2(self):
+        """
+        Retrieve master station 2
+
+        Note this value is 1 indexed, 0 means disabled
+        """
+        return self._get_option("mas2")
+
+    @property
     def rain_delay_enabled(self):
         """Retrieve rain delay enabled"""
         return bool(self._get_variable("rd"))
