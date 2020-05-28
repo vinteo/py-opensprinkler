@@ -113,15 +113,15 @@ class Controller(object):
             if i not in self._stations:
                 self._stations[i] = Station(self, i)
 
-    def _refresh_state(self):
-        (_, content) = self.request("/ja")
-        self._state = content
-
         fpr0 = self._get_option("fpr0")
         fpr1 = self._get_option("fpr1")
         flwrt = self._get_variable("flwrt")
         flcrt = self._get_variable("flcrt")
         self._flow_rate = (flcrt * ((fpr1 << 8) + fpr0) / 100) / (flwrt / 60)
+
+    def _refresh_state(self):
+        (_, content) = self.request("/ja")
+        self._state = content
 
     def _get_option(self, option):
         """Retrieve option"""
@@ -309,7 +309,7 @@ class Controller(object):
     @property
     def flow_sensor_enabled(self):
         """Retrieve flow sensor enabled"""
-        return self._get_option("urs") == 2
+        return self._get_option("sn1t") == 2
 
     @property
     def flow_rate(self):
