@@ -27,7 +27,6 @@ class Controller(object):
         self._opts = opts
         self._programs = {}
         self._stations = {}
-        self._flow_rate = 0
         self._state = None
         self.refresh_on_update = None
 
@@ -112,12 +111,6 @@ class Controller(object):
         for i, _ in enumerate(self._state["stations"]["snames"]):
             if i not in self._stations:
                 self._stations[i] = Station(self, i)
-
-        fpr0 = self._get_option("fpr0")
-        fpr1 = self._get_option("fpr1")
-        flwrt = self._get_variable("flwrt")
-        flcrt = self._get_variable("flcrt")
-        self._flow_rate = (flcrt * ((fpr1 << 8) + fpr0) / 100) / (flwrt / 60)
 
     def _refresh_state(self):
         (_, content) = self.request("/ja")
@@ -314,7 +307,12 @@ class Controller(object):
     @property
     def flow_rate(self):
         """Return flow rate"""
-        return self._flow_rate
+        fpr0 = self._get_option("fpr0")
+        fpr1 = self._get_option("fpr1")
+        flwrt = self._get_variable("flwrt")
+        flcrt = self._get_variable("flcrt")
+
+        return (flcrt * ((fpr1 << 8) + fpr0) / 100) / (flwrt / 60)
 
     @property
     def last_weather_call(self):
