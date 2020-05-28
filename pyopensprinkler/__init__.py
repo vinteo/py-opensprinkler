@@ -212,6 +212,11 @@ class Controller(object):
         """Retrieve hardware version"""
         return self._get_option("hwv")
 
+    @property
+    def enabled(self):
+        """Retrieve operation enabled"""
+        return bool(self._get_variable("en"))
+
     # lrun [station index, program index, duration, end time]
     @property
     def last_run_station(self):
@@ -278,11 +283,6 @@ class Controller(object):
     def sensor_2_enabled(self):
         """Retrieve sensor 2 enabled"""
         return bool(self._get_variable("sn2"))
-
-    @property
-    def operation_enabled(self):
-        """Retrieve operation enabled"""
-        return self._get_variable("en")
 
     @property
     def water_level(self):
