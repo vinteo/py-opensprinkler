@@ -27,6 +27,7 @@ class Controller(object):
         self._opts = opts
         self._programs = {}
         self._stations = {}
+        self._flow_rate = 0
         self._state = None
         self.refresh_on_update = None
 
@@ -115,6 +116,12 @@ class Controller(object):
     def _refresh_state(self):
         (_, content) = self.request("/ja")
         self._state = content
+
+        fpr0 = self._get_option("fpr0")
+        fpr1 = self._get_option("fpr1")
+        flwrt = self._get_variable("flwrt")
+        flcrt = self._get_variable("flcrt")
+        self._flow_rate = (flcrt * ((fpr1 << 8) + fpr0) / 100) / (flwrt / 60)
 
     def _get_option(self, option):
         """Retrieve option"""
@@ -298,6 +305,26 @@ class Controller(object):
     def stations(self):
         """Return stations"""
         return self._stations
+
+    @property
+    def flow_sensor_enabled(self):
+        """Retrieve flow sensor enabled"""
+        return self._get_option("urs") == 2
+
+    @property
+    def flow_rate(self):
+        """Return flow rate"""
+        return self._flow_rate
+
+    @property
+    def last_weather_call(self):
+        """Retrieve last weather call"""
+        return self._get_variable("lwc")
+
+    @property
+    def last_successfull_weather_call(self):
+        """Retrieve last successfull weather call"""
+        return self._get_variable("lswc")
 
 
 class OpenSprinklerAuthError(Exception):
