@@ -251,10 +251,10 @@ class Program(object):
             return None
 
         if value == 1:
-            return "odd-days"
+            return "odd_days"
 
         if value == 2:
-            return "even-days"
+            return "even_days"
 
     @property
     def program_schedule_type(self):
@@ -279,7 +279,7 @@ class Program(object):
             return "weekday"
 
         if value == 3:
-            return "interval-day"
+            return "interval_day"
 
         return None
 
@@ -295,4 +295,4 @@ class Program(object):
             return "repeating"
 
         if value == 1:
-            return "fixed-time"
+            return "fixed_time"
