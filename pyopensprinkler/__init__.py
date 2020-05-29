@@ -116,13 +116,18 @@ class Controller(object):
         (_, content) = self.request("/ja")
         self._state = content
 
+    def _retrieve_state(self):
+        if self._state == None:
+            raise OpenSprinklerNoStateError("No state. Please refresh")
+        return self._state
+
     def _get_option(self, option):
         """Retrieve option"""
-        return self._state["options"][option]
+        return self._retrieve_state()["options"][option]
 
     def _get_options(self):
         """Retrieve options"""
-        return self._state["options"]
+        return self._retrieve_state()["options"]
 
     def _set_option(self, option, value):
         """Set option"""
@@ -137,11 +142,11 @@ class Controller(object):
 
     def _get_variable(self, option):
         """Retrieve variable"""
-        return self._state["settings"][option]
+        return self._retrieve_state()["settings"][option]
 
     def _get_variables(self):
         """Retrieve variables"""
-        return self._state["settings"]
+        return self._retrieve_state()["settings"]
 
     def _set_variable(self, variable, value):
         """Set variable"""
@@ -306,3 +311,7 @@ class OpenSprinklerAuthError(Exception):
 
 class OpenSprinklerConnectionError(Exception):
     """Exception for connection error."""
+
+
+class OpenSprinklerNoStateError(Exception):
+    """Exception for no state."""
