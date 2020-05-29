@@ -304,6 +304,31 @@ class Controller(object):
         """Return stations"""
         return self._stations
 
+    @property
+    def flow_sensor_enabled(self):
+        """Retrieve flow sensor enabled"""
+        return self._get_option("sn1t") == 2
+
+    @property
+    def flow_rate(self):
+        """Return flow rate"""
+        fpr0 = self._get_option("fpr0")
+        fpr1 = self._get_option("fpr1")
+        flwrt = self._get_variable("flwrt")
+        flcrt = self._get_variable("flcrt")
+
+        return (flcrt * ((fpr1 << 8) + fpr0) / 100) / (flwrt / 60)
+
+    @property
+    def last_weather_call(self):
+        """Retrieve last weather call"""
+        return self._get_variable("lwc")
+
+    @property
+    def last_successfull_weather_call(self):
+        """Retrieve last successfull weather call"""
+        return self._get_variable("lswc")
+
 
 class OpenSprinklerAuthError(Exception):
     """Exception for authentication error."""
