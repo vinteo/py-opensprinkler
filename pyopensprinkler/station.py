@@ -62,8 +62,10 @@ class Station(object):
         bits = int(bits, 2)
         return self._set_attribute(bit_update_name + str(bank), bits)
 
-    def run(self, seconds=60):
+    def run(self, seconds=None):
         """Run station"""
+        if seconds is None:
+            seconds = 60
         params = {"en": 1, "t": seconds}
         return self._manual_run(params)
 
