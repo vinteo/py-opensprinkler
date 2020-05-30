@@ -240,7 +240,14 @@ class Controller(object):
     def disable_remote_extension_mode(self):
         return self._set_variable("re", 0)
 
-    def stop_all_stations(self):
+    def stop_stations(self):
+        """Run stop all running stations"""
+        for _, station in self.stations.items():
+            if not station.is_master and station.is_running:
+                station.stop()
+
+    def reset_stations(self):
+        """Run stop all running and waiting stations"""
         return self._set_variable("rsn", 1)
 
     def firmware_update(self):
