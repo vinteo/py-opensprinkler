@@ -123,7 +123,10 @@ class Controller(object):
 
     def _get_option(self, option):
         """Retrieve option"""
-        return self._retrieve_state()["options"][option]
+        try:
+            return self._get_options()[option]
+        except KeyError:
+            return None
 
     def _get_options(self):
         """Retrieve options"""
@@ -142,7 +145,10 @@ class Controller(object):
 
     def _get_variable(self, option):
         """Retrieve variable"""
-        return self._retrieve_state()["settings"][option]
+        try:
+            return self._get_variables()[option]
+        except KeyError:
+            return None
 
     def _get_variables(self):
         """Retrieve variables"""
@@ -599,6 +605,9 @@ class Controller(object):
         fpr1 = self._get_option("fpr1")
         flwrt = self._get_variable("flwrt")
         flcrt = self._get_variable("flcrt")
+
+        if not fpr0 or not fpr1 or not flwrt or not flcrt:
+            return None
 
         return (flcrt * ((fpr1 << 8) + fpr0) / 100) / (flwrt / 60)
 
