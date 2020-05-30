@@ -370,6 +370,26 @@ class Controller(object):
         return self._get_variable("lrun")[3]
 
     @property
+    def rssi(self):
+        """Retrieve RSSI"""
+        return self._get_variable("RSSI")
+
+    @property
+    def latitude(self):
+        """Retrieve latitude"""
+        return float(self._get_variable("loc").split(",")[0].strip())
+
+    @property
+    def longitude(self):
+        """Retrieve longitude"""
+        return float(self._get_variable("loc").split(",")[1].strip())
+
+    @property
+    def current_draw(self):
+        """Retrieve current draw in mA"""
+        return self._get_variable("curr")
+
+    @property
     def master_station_1(self):
         """
         Retrieve master station 1
@@ -565,6 +585,16 @@ class Controller(object):
         return (flcrt * ((fpr1 << 8) + fpr0) / 100) / (flwrt / 60)
 
     @property
+    def flow_count_window(self):
+        """Retrieve flow count window in seconds"""
+        return self._get_variable("flwrt")
+
+    @property
+    def flow_count(self):
+        """Retrieve flow count"""
+        return self._get_variable("flcrt")
+
+    @property
     def last_weather_call(self):
         """Retrieve last weather call"""
         return self._get_variable("lwc")
@@ -573,6 +603,93 @@ class Controller(object):
     def last_successfull_weather_call(self):
         """Retrieve last successfull weather call"""
         return self._get_variable("lswc")
+
+    @property
+    def last_weather_call_error(self):
+        """Retrieve last weather call error"""
+        return self._get_variable("wterr")
+
+    @property
+    def last_weather_call_error_name(self):
+        """Retrieve last weather call error name"""
+        if self.last_weather_call_error == -1:
+            return "request_not_received"
+
+        if self.last_weather_call_error == -2:
+            return "cannot_connect_to_weather_server"
+
+        if self.last_weather_call_error == -3:
+            return "request_time_out"
+
+        if self.last_weather_call_error == -4:
+            return "empty_response"
+
+    @property
+    def sunrise(self):
+        """
+        Retrieve sunrise
+
+        Today’s sunrise time (number of minutes from midnight).
+        """
+        return self._get_variable("sunrise")
+
+    @property
+    def sunset(self):
+        """
+        Retrieve sunset
+
+        Today’s sunset time (number of minutes from midnight).
+        """
+        return self._get_variable("sunset")
+
+    @property
+    def last_reboot_time(self):
+        """Retrieve last device reboot time"""
+        return self._get_variable("lupt")
+
+    @property
+    def last_reboot_cause(self):
+        """Retrieve last device reboot cause"""
+        return self._get_variable("lrbtc")
+
+    @property
+    def last_reboot_cause_name(self):
+        """Retrieve last device reboot cause name"""
+        if self.last_reboot_cause == 0:
+            return None
+
+        if self.last_reboot_cause == 1:
+            return "factory_reset"
+
+        if self.last_reboot_cause == 2:
+            return "buttons"
+
+        if self.last_reboot_cause == 3:
+            return "ap_mode"
+
+        if self.last_reboot_cause == 4:
+            return "api"
+
+        if self.last_reboot_cause == 5:
+            return "api"
+
+        if self.last_reboot_cause == 6:
+            return "client_mode"
+
+        if self.last_reboot_cause == 7:
+            return "firmware_update"
+
+        if self.last_reboot_cause == 8:
+            return "weather_call_failure"
+
+        if self.last_reboot_cause == 9:
+            return "network_failure"
+
+        if self.last_reboot_cause == 10:
+            return "ntp_sync"
+
+        if self.last_reboot_cause == 99:
+            return "power_on"
 
     @property
     def programs(self):
