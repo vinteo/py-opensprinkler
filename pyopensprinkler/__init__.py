@@ -377,12 +377,20 @@ class Controller(object):
     @property
     def latitude(self):
         """Retrieve latitude"""
-        return float(self._get_variable("loc").split(",")[0].strip())
+        loc = self._get_variable("loc")
+        if len(loc) < 1 or "," not in loc:
+            return None
+
+        return float(loc.split(",")[0].strip())
 
     @property
     def longitude(self):
         """Retrieve longitude"""
-        return float(self._get_variable("loc").split(",")[1].strip())
+        loc = self._get_variable("loc")
+        if len(loc) < 1 or "," not in loc:
+            return None
+
+        return float(loc.split(",")[1].strip())
 
     @property
     def current_draw(self):
