@@ -257,6 +257,16 @@ class Controller(object):
 
         return self._set_option("wl", level)
 
+    def run_once_program(self, station_times):
+        """Run once program"""
+        params = {"t": station_times}
+
+        t = json.dumps(params.pop("t", None)).replace(" ", "")
+        t = t.strip()
+
+        (_, content) = self.request("/cr", None, f"t={t}")
+        return content["result"]
+
     @property
     def enabled(self):
         """Retrieve operation enabled"""
