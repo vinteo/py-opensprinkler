@@ -1,6 +1,10 @@
-# py-opensprinkler
+[![PyPI version](https://badge.fury.io/py/pyopensprinkler.svg)](https://badge.fury.io/py/pyopensprinkler)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/pyopensprinkler)
+![](https://github.com/vinteo/py-opensprinkler/workflows/Linting/badge.svg)
 
-Python module for OpenSprinker API. Tested against OpenSprinkler version 2.1.9.
+# Python module for OpenSprinker API.
+
+Tested against OpenSprinkler version 2.1.9.
 
 ## Installation
 
