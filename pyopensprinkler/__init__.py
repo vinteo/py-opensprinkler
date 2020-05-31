@@ -601,13 +601,13 @@ class Controller(object):
     @property
     def flow_rate(self):
         """Return flow rate"""
+        if not self.flow_sensor_enabled:
+            return None
+
         fpr0 = self._get_option("fpr0")
         fpr1 = self._get_option("fpr1")
         flwrt = self._get_variable("flwrt")
         flcrt = self._get_variable("flcrt")
-
-        if not fpr0 or not fpr1 or not flwrt or not flcrt:
-            return None
 
         return (flcrt * ((fpr1 << 8) + fpr0) / 100) / (flwrt / 60)
 
