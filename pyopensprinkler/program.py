@@ -1,6 +1,12 @@
 """Program module handling /program/ API calls."""
 
 import json
+from pyopensprinkler.const import (
+    SCHEDULE_START_TIME_FIXED,
+    SCHEDULE_START_TIME_REPEATING,
+    SCHEDULE_TYPE_INTERVAL_DAY,
+    SCHEDULE_TYPE_WEEKDAY,
+)
 
 
 class Program(object):
@@ -276,10 +282,10 @@ class Program(object):
         value = self.program_schedule_type
 
         if value == 0:
-            return "weekday"
+            return SCHEDULE_TYPE_WEEKDAY
 
         if value == 3:
-            return "interval_day"
+            return SCHEDULE_TYPE_INTERVAL_DAY
 
         return None
 
@@ -292,7 +298,7 @@ class Program(object):
         value = self.start_time_type
 
         if value == 0:
-            return "repeating"
+            return SCHEDULE_START_TIME_REPEATING
 
         if value == 1:
-            return "fixed_time"
+            return SCHEDULE_START_TIME_FIXED
