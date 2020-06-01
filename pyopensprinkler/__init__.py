@@ -206,7 +206,7 @@ class Controller(object):
         for i in [1, 2, 3, 4]:
             option = option_name_prefix + str(i)
             octet = self._get_option(option)
-            if len(str(octet)) < 1:
+            if octet is None or len(str(octet)) < 1:
                 return None
 
             ip = ip + str(octet)
