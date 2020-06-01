@@ -123,7 +123,10 @@ class Controller(object):
 
     def _get_option(self, option):
         """Retrieve option"""
-        return self._retrieve_state()["options"][option]
+        try:
+            return self._get_options()[option]
+        except KeyError:
+            return None
 
     def _get_options(self):
         """Retrieve options"""
@@ -142,7 +145,10 @@ class Controller(object):
 
     def _get_variable(self, option):
         """Retrieve variable"""
-        return self._retrieve_state()["settings"][option]
+        try:
+            return self._get_variables()[option]
+        except KeyError:
+            return None
 
     def _get_variables(self):
         """Retrieve variables"""
@@ -200,7 +206,7 @@ class Controller(object):
         for i in [1, 2, 3, 4]:
             option = option_name_prefix + str(i)
             octet = self._get_option(option)
-            if len(str(octet)) < 1:
+            if octet is None or len(str(octet)) < 1:
                 return None
 
             ip = ip + str(octet)
@@ -602,12 +608,18 @@ class Controller(object):
     @property
     def flow_rate(self):
         """Return flow rate"""
+        if not self.flow_sensor_enabled:
+            return None
+
         fpr0 = self._get_option("fpr0")
         fpr1 = self._get_option("fpr1")
         flwrt = self._get_variable("flwrt")
         flcrt = self._get_variable("flcrt")
 
-        return (flcrt * ((fpr1 << 8) + fpr0) / 100) / (flwrt / 60)
+        try:
+            return (flcrt * ((fpr1 << 8) + fpr0) / 100) / (flwrt / 60)
+        except (TypeError, ZeroDivisionError):
+            return None
 
     @property
     def flow_count_window(self):
