@@ -609,7 +609,10 @@ class Controller(object):
         flwrt = self._get_variable("flwrt")
         flcrt = self._get_variable("flcrt")
 
-        return (flcrt * ((fpr1 << 8) + fpr0) / 100) / (flwrt / 60)
+        try:
+            return (flcrt * ((fpr1 << 8) + fpr0) / 100) / (flwrt / 60)
+        except (TypeError, ZeroDivisionError):
+            return None
 
     @property
     def flow_count_window(self):
