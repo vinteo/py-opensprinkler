@@ -12,6 +12,22 @@ from pyopensprinkler.program import Program
 from pyopensprinkler.station import Station
 
 
+class OpenSprinklerAuthError(Exception):
+    """Exception for authentication error."""
+
+
+class OpenSprinklerConnectionError(Exception):
+    """Exception for connection error."""
+
+
+class OpenSprinklerNoStateError(Exception):
+    """Exception for no state."""
+
+
+class OpenSprinklerApiError(Exception):
+    """Exception for an error returned by the API."""
+
+
 class Controller(object):
     """OpenSprinkler Controller"""
 
@@ -81,14 +97,23 @@ class Controller(object):
 
         return resp, content
 
-    @on_exception(expo, Exception, max_tries=3)
+    @on_exception(expo, OpenSprinklerConnectionError, max_tries=3)
     def request_http(self, url):
         try:
-            (resp, content) = self._http_client.request(url, "GET")
+            headers = {"Accept": "*/*"}
+            (resp, content) = self._http_client.request(url, "GET", headers=headers)
             content = json.loads(content.decode("UTF-8"))
 
-            if len(content) == 1 and not content["result"] and content["fwv"]:
-                raise OpenSprinklerAuthError("Invalid password")
+            if len(content) == 1:
+                if "result" in content:
+                    if content["result"] == 2:
+                        raise OpenSprinklerAuthError("Invalid password")
+                    elif content["result"] > 2:
+                        raise OpenSprinklerApiError(
+                            f"Error code: {content['result']}", content["result"]
+                        )
+                elif "fwv" in content:
+                    raise OpenSprinklerAuthError("Invalid password")
 
             return resp, content
         except httplib2.HttpLib2Error as exc:
@@ -113,7 +138,27 @@ class Controller(object):
                 self._stations[i] = Station(self, i)
 
     def _refresh_state(self):
-        (_, content) = self.request("/ja")
+        try:
+            (_, content) = self.request("/ja")
+        except OpenSprinklerApiError as exc:
+            (_, err_code) = exc.args
+            if err_code == 32:
+                # Backwards compatibility for pre 2.1.6
+                (_, settings) = self.request("/jc")
+                (_, options) = self.request("/jo")
+                (_, stations) = self.request("/jn")
+                (_, status) = self.request("/js")
+                (_, programs) = self.request("/jp")
+                content = {
+                    "settings": settings,
+                    "options": options,
+                    "stations": stations,
+                    "status": status,
+                    "programs": programs,
+                }
+            else:
+                raise exc
+
         self._state = content
 
     def _retrieve_state(self):
@@ -730,15 +775,3 @@ class Controller(object):
     def stations(self):
         """Return stations"""
         return self._stations
-
-
-class OpenSprinklerAuthError(Exception):
-    """Exception for authentication error."""
-
-
-class OpenSprinklerConnectionError(Exception):
-    """Exception for connection error."""
-
-
-class OpenSprinklerNoStateError(Exception):
-    """Exception for no state."""
