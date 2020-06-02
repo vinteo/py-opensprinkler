@@ -10,6 +10,28 @@ from backoff import expo, on_exception
 
 from pyopensprinkler.program import Program
 from pyopensprinkler.station import Station
+from pyopensprinkler.const import (
+    REBOOT_CAUSE_FACTORY_RESET,
+    REBOOT_CAUSE_RESET_BUTTON,
+    REBOOT_CAUSE_AP_RESET,
+    REBOOT_CAUSE_API_REQUEST,
+    REBOOT_CAUSE_CLIENT_MODE,
+    REBOOT_CAUSE_FIRMWARE_UPDATE,
+    REBOOT_CAUSE_WEATHER_FAILURE,
+    REBOOT_CAUSE_NETWORK_FAILURE,
+    REBOOT_CAUSE_NTP_SYNC,
+    REBOOT_CAUSE_POWER_ON,
+    SENSOR_OPTION_NORMALLY_CLOSED,
+    SENSOR_OPTION_NORMALLY_OPEN,
+    SENSOR_TYPE_RAIN,
+    SENSOR_TYPE_FLOW,
+    SENSOR_TYPE_SOIL,
+    SENSOR_TYPE_PROGRAM_SWITCH,
+    WEATHER_ERROR_NOT_RECEIVED,
+    WEATHER_ERROR_CANT_CONNECT,
+    WEATHER_ERROR_TIME_OUT,
+    WEATHER_ERROR_EMPTY_RESPONSE,
+)
 
 
 class OpenSprinklerAuthError(Exception):
@@ -216,16 +238,16 @@ class Controller(object):
             return None
 
         if sensor_type == 1:
-            return "rain"
+            return SENSOR_TYPE_RAIN
 
         if sensor_type == 2:
-            return "flow"
+            return SENSOR_TYPE_FLOW
 
         if sensor_type == 3:
-            return "soil"
+            return SENSOR_TYPE_SOIL
 
         if sensor_type == 240:
-            return "program_switch"
+            return SENSOR_TYPE_PROGRAM_SWITCH
 
         raise ValueError("unknown sensor_type value")
 
@@ -238,10 +260,10 @@ class Controller(object):
     def _sensor_option_to_name(self, sensor_option):
         """Get sensor option name from value"""
         if sensor_option == 0:
-            return "normally_closed"
+            return SENSOR_OPTION_NORMALLY_CLOSED
 
         if sensor_option == 1:
-            return "normally_open"
+            return SENSOR_OPTION_NORMALLY_OPEN
 
         raise ValueError("unknown sensor_option value")
 
@@ -688,16 +710,16 @@ class Controller(object):
     def last_weather_call_error_name(self):
         """Retrieve last weather call error name"""
         if self.last_weather_call_error == -1:
-            return "request_not_received"
+            return WEATHER_ERROR_NOT_RECEIVED
 
         if self.last_weather_call_error == -2:
-            return "cannot_connect_to_weather_server"
+            return WEATHER_ERROR_CANT_CONNECT
 
         if self.last_weather_call_error == -3:
-            return "request_time_out"
+            return WEATHER_ERROR_TIME_OUT
 
         if self.last_weather_call_error == -4:
-            return "empty_response"
+            return WEATHER_ERROR_EMPTY_RESPONSE
 
     @property
     def sunrise(self):
@@ -734,37 +756,37 @@ class Controller(object):
             return None
 
         if self.last_reboot_cause == 1:
-            return "factory_reset"
+            return REBOOT_CAUSE_FACTORY_RESET
 
         if self.last_reboot_cause == 2:
-            return "buttons"
+            return REBOOT_CAUSE_RESET_BUTTON
 
         if self.last_reboot_cause == 3:
-            return "ap_mode"
+            return REBOOT_CAUSE_AP_RESET
 
         if self.last_reboot_cause == 4:
-            return "api"
+            return REBOOT_CAUSE_API_REQUEST
 
         if self.last_reboot_cause == 5:
-            return "api"
+            return REBOOT_CAUSE_API_REQUEST
 
         if self.last_reboot_cause == 6:
-            return "client_mode"
+            return REBOOT_CAUSE_CLIENT_MODE
 
         if self.last_reboot_cause == 7:
-            return "firmware_update"
+            return REBOOT_CAUSE_FIRMWARE_UPDATE
 
         if self.last_reboot_cause == 8:
-            return "weather_call_failure"
+            return REBOOT_CAUSE_WEATHER_FAILURE
 
         if self.last_reboot_cause == 9:
-            return "network_failure"
+            return REBOOT_CAUSE_NETWORK_FAILURE
 
         if self.last_reboot_cause == 10:
-            return "ntp_sync"
+            return REBOOT_CAUSE_NTP_SYNC
 
         if self.last_reboot_cause == 99:
-            return "power_on"
+            return REBOOT_CAUSE_POWER_ON
 
     @property
     def programs(self):

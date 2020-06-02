@@ -1,6 +1,15 @@
 """Station module handling /station/ API calls."""
 
 import math
+from pyopensprinkler.const import (
+    STATION_STATUS_IDLE,
+    STATION_STATUS_MANUAL,
+    STATION_STATUS_MASTER_ENGAGED,
+    STATION_STATUS_ONCE_PROGRAM,
+    STATION_STATUS_PROGRAM,
+    STATION_STATUS_WAITING,
+    STATION_TYPE_STANDARD,
+)
 
 
 class Station(object):
@@ -229,7 +238,7 @@ class Station(object):
     @property
     def station_type(self):
         if not self.special:
-            return "standard"
+            return STATION_TYPE_STANDARD
 
         # TODO: fetch the /je endpoint and return as appropriate
 
@@ -243,20 +252,20 @@ class Station(object):
 
         if is_running:
             if pid == 99:
-                state = "manual"
+                state = STATION_STATUS_MANUAL
             elif pid == 254:
-                state = "once_program"
+                state = STATION_STATUS_ONCE_PROGRAM
             elif pid == 0:
                 if self.is_master:
-                    state = "master_engaged"
+                    state = STATION_STATUS_MASTER_ENGAGED
                 else:
-                    state = "idle"
+                    state = STATION_STATUS_IDLE
             else:
-                state = "program"
+                state = STATION_STATUS_PROGRAM
         else:
             if pid > 0:
-                state = "waiting"
+                state = STATION_STATUS_WAITING
             else:
-                state = "idle"
+                state = STATION_STATUS_IDLE
 
         return state
