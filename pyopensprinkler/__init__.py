@@ -341,6 +341,15 @@ class Controller(object):
         (_, content) = self.request("/cr", None, f"t={t}")
         return content["result"]
 
+    def set_password(self, password):
+        """Set password"""
+        md5password = hashlib.md5(password.encode("utf-8")).hexdigest()
+        params = {"pw": self._md5password, "npw": md5password, "cpw": md5password}
+
+        (_, content) = self.request("/sp", params)
+        self._md5password = md5password
+        return content["result"]
+
     @property
     def enabled(self):
         """Retrieve operation enabled"""
