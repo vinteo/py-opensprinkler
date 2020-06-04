@@ -23,6 +23,7 @@ from pyopensprinkler.const import (
     REBOOT_CAUSE_POWER_ON,
     SENSOR_OPTION_NORMALLY_CLOSED,
     SENSOR_OPTION_NORMALLY_OPEN,
+    SENSOR_TYPE_NOT_CONNECTED,
     SENSOR_TYPE_RAIN,
     SENSOR_TYPE_FLOW,
     SENSOR_TYPE_SOIL,
@@ -235,7 +236,7 @@ class Controller(object):
     def _sensor_type_to_name(self, sensor_type):
         """Get sensor type name from value"""
         if sensor_type == 0:
-            return None
+            return SENSOR_TYPE_NOT_CONNECTED
 
         if sensor_type == 1:
             return SENSOR_TYPE_RAIN
@@ -547,31 +548,52 @@ class Controller(object):
     @property
     def sensor_1_active(self):
         """Retrieve sensor 1 active"""
-        return bool(self._get_variable("sn1"))
+        if self._get_variable("sn1") is not None:
+            return bool(self._get_variable("sn1"))
+
+        if self._get_variable("rs") is not None:
+            return bool(self._get_variable("rs"))
+
+        return None
 
     @property
     def sensor_1_enabled(self):
         """Retrieve sensor 1 enabled"""
+        if self.sensor_1_type is None:
+            return None
+
         return bool(self.sensor_1_type > 0)
 
     @property
     def sensor_1_type(self):
         """Retrieve sensor 1 type"""
-        return self._get_option("sn1t")
+        if self._get_option("sn1t") is not None:
+            return self._get_option("sn1t")
+
+        return self._get_option("urs")
 
     @property
     def sensor_1_type_name(self):
         """Retrieve sensor 1 type name"""
+        if self.sensor_1_type is None:
+            return None
+
         return self._sensor_type_to_name(self.sensor_1_type)
 
     @property
     def sensor_1_option(self):
         """Retrieve sensor 1 option"""
-        return self._get_option("sn1o")
+        if self._get_option("sn1o") is not None:
+            return self._get_option("sn1o")
+
+        return self._get_option("rso")
 
     @property
     def sensor_1_option_name(self):
         """Retrieve sensor 1 option name"""
+        if self.sensor_1_option is None:
+            return None
+
         return self._sensor_option_to_name(self.sensor_1_option)
 
     @property
@@ -595,11 +617,17 @@ class Controller(object):
     @property
     def sensor_2_active(self):
         """Retrieve sensor 2 active"""
+        if self.sensor_2_type is None:
+            return None
+
         return bool(self._get_variable("sn2"))
 
     @property
     def sensor_2_enabled(self):
         """Retrieve sensor 2 enabled"""
+        if self.sensor_2_type is None:
+            return None
+
         return bool(self.sensor_2_type > 0)
 
     @property
@@ -610,6 +638,9 @@ class Controller(object):
     @property
     def sensor_2_type_name(self):
         """Retrieve sensor 2 type name"""
+        if self.sensor_2_type is None:
+            return None
+
         return self._sensor_type_to_name(self.sensor_2_type)
 
     @property
@@ -620,6 +651,9 @@ class Controller(object):
     @property
     def sensor_2_option_name(self):
         """Retrieve sensor 2 option name"""
+        if self.sensor_2_option is None:
+            return None
+
         return self._sensor_option_to_name(self.sensor_2_option)
 
     @property
