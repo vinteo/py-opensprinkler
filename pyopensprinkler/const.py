@@ -1,3 +1,4 @@
+SENSOR_TYPE_NOT_CONNECTED = "not_connected"
 SENSOR_TYPE_FLOW = "flow"
 SENSOR_TYPE_PROGRAM_SWITCH = "program_switch"
 SENSOR_TYPE_RAIN = "rain"
