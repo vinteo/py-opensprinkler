@@ -1,0 +1,54 @@
+language: python
+
+python:
+  - "3.7"
+
+arch:
+  - arm64
+
+services:
+  - docker
+
+before_install:
+  - docker pull vinteo81/opensprinkler-firmware:215
+  - docker pull vinteo81/opensprinkler-firmware:216
+  - docker pull vinteo81/opensprinkler-firmware:217
+  - docker pull vinteo81/opensprinkler-firmware:218
+  - docker pull vinteo81/opensprinkler-firmware:219
+  - docker run -d -p 127.0.0.1:8215:8080 vinteo81/opensprinkler-firmware:215
+  - docker run -d -p 127.0.0.1:8216:8080 vinteo81/opensprinkler-firmware:216
+  - docker run -d -p 127.0.0.1:8217:8080 vinteo81/opensprinkler-firmware:217
+  - docker run -d -p 127.0.0.1:8218:8080 vinteo81/opensprinkler-firmware:218
+  - docker run -d -p 127.0.0.1:8219:8080 vinteo81/opensprinkler-firmware:219
+  - docker ps -a
+
+install:
+  - pip install -r requirements.txt
+  - pip install -r requirements-dev.txt
+
+jobs:
+  include:
+    - stage: Firmware Tests
+      name: Test Against Firmware 215
+      script:
+        - curl 'http://localhost:8215/sp?pw=opendoor&npw=a6d82bced638de3def1e9bbb4983225c&cpw=a6d82bced638de3def1e9bbb4983225c'
+        - CONTROLLER_URL=http://localhost:8215 CONTROLLER_FIRMWARE=215 pytest tests/run_on_firmware.py
+    - stage: Firmware Tests
+      name: Test Against Firmware 216
+      script:
+        - curl 'http://localhost:8216/sp?pw=opendoor&npw=a6d82bced638de3def1e9bbb4983225c&cpw=a6d82bced638de3def1e9bbb4983225c'
+        - CONTROLLER_URL=http://localhost:8216 CONTROLLER_FIRMWARE=216 pytest tests/run_on_firmware.py
+    - stage: Firmware Tests
+      name: Test Against Firmware 217
+      script:
+        - CONTROLLER_URL=http://localhost:8217 CONTROLLER_FIRMWARE=217 pytest tests/run_on_firmware.py
+    - stage: Firmware Tests
+      name: Test Against Firmware 218
+      script:
+        - curl 'http://localhost:8218/sp?pw=opendoor&npw=a6d82bced638de3def1e9bbb4983225c&cpw=a6d82bced638de3def1e9bbb4983225c'
+        - CONTROLLER_URL=http://localhost:8218 CONTROLLER_FIRMWARE=218 pytest tests/run_on_firmware.py
+    - stage: Firmware Tests
+      name: Test Against Firmware 219
+      script:
+        - curl 'http://localhost:8219/sp?pw=opendoor&npw=a6d82bced638de3def1e9bbb4983225c&cpw=a6d82bced638de3def1e9bbb4983225c'
+        - CONTROLLER_URL=http://localhost:8219 CONTROLLER_FIRMWARE=219 pytest tests/run_on_firmware.py

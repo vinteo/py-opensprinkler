@@ -1,0 +1,39 @@
+SENSOR_TYPE_NOT_CONNECTED = "not_connected"
+SENSOR_TYPE_FLOW = "flow"
+SENSOR_TYPE_PROGRAM_SWITCH = "program_switch"
+SENSOR_TYPE_RAIN = "rain"
+SENSOR_TYPE_SOIL = "soil"
+
+SENSOR_OPTION_NORMALLY_CLOSED = "normally_closed"
+SENSOR_OPTION_NORMALLY_OPEN = "normally_open"
+
+WEATHER_ERROR_CANT_CONNECT = "cannot_connect_to_weather_server"
+WEATHER_ERROR_EMPTY_RESPONSE = "empty_response"
+WEATHER_ERROR_NOT_RECEIVED = "request_not_received"
+WEATHER_ERROR_TIME_OUT = "request_time_out"
+
+REBOOT_CAUSE_AP_RESET = "ap_mode"
+REBOOT_CAUSE_API_REQUEST = "api"
+REBOOT_CAUSE_CLIENT_MODE = "client_mode"
+REBOOT_CAUSE_FACTORY_RESET = "factory_reset"
+REBOOT_CAUSE_FIRMWARE_UPDATE = "firmware_update"
+REBOOT_CAUSE_NETWORK_FAILURE = "network_failure"
+REBOOT_CAUSE_NTP_SYNC = "ntp_sync"
+REBOOT_CAUSE_POWER_ON = "power_on"
+REBOOT_CAUSE_RESET_BUTTON = "buttons"
+REBOOT_CAUSE_WEATHER_FAILURE = "weather_call_failure"
+
+STATION_TYPE_STANDARD = "standard"
+
+STATION_STATUS_IDLE = "idle"
+STATION_STATUS_MANUAL = "manual"
+STATION_STATUS_MASTER_ENGAGED = "master_engaged"
+STATION_STATUS_ONCE_PROGRAM = "once_program"
+STATION_STATUS_PROGRAM = "program"
+STATION_STATUS_WAITING = "waiting"
+
+SCHEDULE_TYPE_INTERVAL_DAY = "interval_day"
+SCHEDULE_TYPE_WEEKDAY = "weekday"
+
+SCHEDULE_START_TIME_FIXED = "fixed_time"
+SCHEDULE_START_TIME_REPEATING = "repeating"
