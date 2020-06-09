@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import os
 import time
 import urllib
 
@@ -67,6 +68,18 @@ class Controller(object):
         self._programs = {}
         self._stations = {}
         self._state = None
+        self._use_ja_endpoint = os.environ.get("PYOPENSPRINKLER_USE_JA_ENDPOINT", None)
+        if self._use_ja_endpoint is not None:
+            self._use_ja_endpoint = self._use_ja_endpoint.lower() in [
+                "true",
+                "t",
+                "1",
+                "yes",
+            ]
+
+        if self._use_ja_endpoint is None and "use_ja_endpoint" in opts:
+            self._use_ja_endpoint = opts["use_ja_endpoint"]
+
         self.refresh_on_update = None
 
         client = httplib2.Http()
@@ -123,7 +136,7 @@ class Controller(object):
     @on_exception(expo, OpenSprinklerConnectionError, max_tries=3)
     def request_http(self, url):
         try:
-            headers = {"Accept": "*/*"}
+            headers = {"Accept": "*/*", "Connection": "keep-alive"}
             (resp, content) = self._http_client.request(url, "GET", headers=headers)
             content = json.loads(content.decode("UTF-8"))
 
@@ -161,26 +174,37 @@ class Controller(object):
                 self._stations[i] = Station(self, i)
 
     def _refresh_state(self):
-        try:
-            (_, content) = self.request("/ja")
-        except OpenSprinklerApiError as exc:
-            (_, err_code) = exc.args
-            if err_code == 32:
-                # Backwards compatibility for pre 2.1.6
-                (_, settings) = self.request("/jc")
-                (_, options) = self.request("/jo")
-                (_, stations) = self.request("/jn")
-                (_, status) = self.request("/js")
-                (_, programs) = self.request("/jp")
-                content = {
-                    "settings": settings,
-                    "options": options,
-                    "stations": stations,
-                    "status": status,
-                    "programs": programs,
-                }
-            else:
-                raise exc
+        use_ja = True
+        if self._use_ja_endpoint is not None:
+            use_ja = self._use_ja_endpoint
+
+        if use_ja:
+            try:
+                (_, content) = self.request("/ja")
+                self._state = content
+                return
+            except OpenSprinklerApiError as exc:
+                (_, err_code) = exc.args
+                if err_code == 32:
+                    # set for preemptive behavior on all subsequent calls
+                    self._use_ja_endpoint = False
+                else:
+                    raise exc
+
+        # Backwards compatibility for pre 2.1.6
+        # Fallback
+        (_, settings) = self.request("/jc")
+        (_, options) = self.request("/jo")
+        (_, stations) = self.request("/jn")
+        (_, status) = self.request("/js")
+        (_, programs) = self.request("/jp")
+        content = {
+            "settings": settings,
+            "options": options,
+            "stations": stations,
+            "status": status,
+            "programs": programs,
+        }
 
         self._state = content
 
