@@ -1,8 +1,9 @@
 """Main OpenSprinkler module."""
-
+import functools
 import hashlib
 import json
 import os
+import threading
 import time
 import urllib
 
@@ -34,6 +35,23 @@ from pyopensprinkler.const import (
     WEATHER_ERROR_TIME_OUT,
     WEATHER_ERROR_EMPTY_RESPONSE,
 )
+
+
+def synchronized(lock):
+    """ Synchronization decorator """
+
+    def wrap(f):
+        @functools.wraps(f)
+        def newFunction(*args, **kw):
+            with lock:
+                return f(*args, **kw)
+
+        return newFunction
+
+    return wrap
+
+
+lock = threading.Lock()
 
 
 class OpenSprinklerAuthError(Exception):
@@ -68,17 +86,19 @@ class Controller(object):
         self._programs = {}
         self._stations = {}
         self._state = None
-        self._use_ja_endpoint = os.environ.get("PYOPENSPRINKLER_USE_JA_ENDPOINT", None)
-        if self._use_ja_endpoint is not None:
-            self._use_ja_endpoint = self._use_ja_endpoint.lower() in [
+        self._skip_all_endpoint = os.environ.get(
+            "PYOPENSPRINKLER_SKIP_ALL_ENDPOINT", None
+        )
+        if self._skip_all_endpoint is not None:
+            self._skip_all_endpoint = self._skip_all_endpoint.lower() in [
                 "true",
                 "t",
                 "1",
                 "yes",
             ]
 
-        if self._use_ja_endpoint is None and "use_ja_endpoint" in opts:
-            self._use_ja_endpoint = opts["use_ja_endpoint"]
+        if self._skip_all_endpoint is None and "skip_all_endpoint" in opts:
+            self._skip_all_endpoint = opts["skip_all_endpoint"]
 
         self.refresh_on_update = None
 
@@ -133,6 +153,7 @@ class Controller(object):
 
         return resp, content
 
+    @synchronized(lock)
     @on_exception(expo, OpenSprinklerConnectionError, max_tries=3)
     def request_http(self, url):
         try:
@@ -175,8 +196,8 @@ class Controller(object):
 
     def _refresh_state(self):
         use_ja = True
-        if self._use_ja_endpoint is not None:
-            use_ja = self._use_ja_endpoint
+        if self._skip_all_endpoint is not None:
+            use_ja = not self._skip_all_endpoint
 
         if use_ja:
             try:
@@ -187,7 +208,7 @@ class Controller(object):
                 (_, err_code) = exc.args
                 if err_code == 32:
                     # set for preemptive behavior on all subsequent calls
-                    self._use_ja_endpoint = False
+                    self._skip_all_endpoint = True
                 else:
                     raise exc
 
