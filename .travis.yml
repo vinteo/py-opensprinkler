@@ -15,11 +15,13 @@ before_install:
   - docker pull vinteo81/opensprinkler-firmware:217
   - docker pull vinteo81/opensprinkler-firmware:218
   - docker pull vinteo81/opensprinkler-firmware:219
+  - docker pull vinteo81/opensprinkler-firmware:219_4
   - docker run -d -p 127.0.0.1:8215:8080 vinteo81/opensprinkler-firmware:215
   - docker run -d -p 127.0.0.1:8216:8080 vinteo81/opensprinkler-firmware:216
   - docker run -d -p 127.0.0.1:8217:8080 vinteo81/opensprinkler-firmware:217
   - docker run -d -p 127.0.0.1:8218:8080 vinteo81/opensprinkler-firmware:218
   - docker run -d -p 127.0.0.1:8219:8080 vinteo81/opensprinkler-firmware:219
+  - docker run -d -p 127.0.0.1:4219:8080 vinteo81/opensprinkler-firmware:219_4
   - docker ps -a
 
 install:
@@ -52,3 +54,8 @@ jobs:
       script:
         - curl 'http://localhost:8219/sp?pw=opendoor&npw=a6d82bced638de3def1e9bbb4983225c&cpw=a6d82bced638de3def1e9bbb4983225c'
         - CONTROLLER_URL=http://localhost:8219 CONTROLLER_FIRMWARE=219 pytest tests/run_on_firmware.py
+    - stage: Firmware Tests
+      name: Test Against Firmware 219 (4)
+      script:
+        - curl 'http://localhost:4219/sp?pw=opendoor&npw=a6d82bced638de3def1e9bbb4983225c&cpw=a6d82bced638de3def1e9bbb4983225c'
+        - CONTROLLER_URL=http://localhost:4219 CONTROLLER_FIRMWARE=219_4 pytest tests/run_on_firmware.py
