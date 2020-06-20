@@ -8,6 +8,7 @@ import time
 import urllib
 
 import httplib2
+import paho.mqtt.client as mqtt
 from backoff import expo, on_exception
 
 from pyopensprinkler.program import Program
@@ -82,6 +83,7 @@ class Controller(object):
         self._password = password
         self._md5password = hashlib.md5(password.encode("utf-8")).hexdigest()
         self._baseUrl = url.strip("/")
+        self._mqtt = None
         self._opts = opts
         self._programs = {}
         self._stations = {}
@@ -233,6 +235,74 @@ class Controller(object):
         if self._state == None:
             raise OpenSprinklerNoStateError("No state. Please refresh")
         return self._state
+
+    def mqtt_start(self):
+        if "mqtt" in self._opts:
+            if self._state == None:
+                self.refresh()
+            if self._mqtt == None:
+                if "port" not in self._opts["mqtt"]:
+                    self._opts["mqtt"]["port"] = 1883
+
+                try:
+                    self._mqtt = mqtt.Client()
+                    if "username" in self._opts["mqtt"]:
+                        self._mqtt.username_pw_set(
+                            self._opts["mqtt"]["username"],
+                            self._opts["mqtt"]["password"],
+                        )
+                    self._mqtt.connect(
+                        self._opts["mqtt"]["host"], self._opts["mqtt"]["port"]
+                    )
+                except Exception as exc:
+                    raise OpenSprinklerConnectionError(
+                        "Cannot connect to MQTT broker"
+                    ) from exc
+                self._mqtt.loop_start()
+
+                (err_code, mid) = self._mqtt.subscribe("opensprinkler/#")
+                if err_code > 0:
+                    raise OpenSprinklerConnectionError("Cannot connect to MQTT broker")
+
+                self._mqtt.message_callback_add(
+                    "opensprinkler/raindelay",
+                    self._mqtt_callback(self._mqtt_rain_delay),
+                )
+                self._mqtt.message_callback_add(
+                    "opensprinkler/sensor1", self._mqtt_callback(self._mqtt_sensor_1)
+                )
+                self._mqtt.message_callback_add(
+                    "opensprinkler/sensor2", self._mqtt_callback(self._mqtt_sensor_2)
+                )
+                self._mqtt.message_callback_add(
+                    "opensprinkler/station/#", self._mqtt_callback(self._mqtt_station)
+                )
+
+    def mqtt_stop(self):
+        if self._mqtt is not None:
+            self._mqtt.disconnect()
+            self._mqtt.loop_stop()
+
+    def _mqtt_callback(self, update):
+        def callback(client, userdata, message):
+            payload = json.loads(message.payload.decode("UTF-8"))
+            update(message, payload)
+
+        return callback
+
+    def _mqtt_rain_delay(self, message, payload):
+        self._get_variables()["rd"] = payload["state"]
+
+    def _mqtt_sensor_1(self, message, payload):
+        self._get_variables()["sn1"] = payload["state"]
+
+    def _mqtt_sensor_2(self, message, payload):
+        self._get_variables()["sn2"] = payload["state"]
+
+    def _mqtt_station(self, message, payload):
+        index = int(message.topic.split("/")[2])
+        self._state["status"]["sn"][index] = payload["state"]
+        self._refresh_state()
 
     def _get_option(self, option):
         """Retrieve option"""
