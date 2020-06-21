@@ -402,9 +402,19 @@ class Controller(object):
         return bool(self._get_variable("en"))
 
     @property
+    def mac_address(self):
+        """Retrieve controller mac address"""
+        return self._get_variable("mac")
+
+    @property
     def firmware_version(self):
         """Retrieve firmware version"""
         return self._get_option("fwv")
+
+    @property
+    def firmware_minor_version(self):
+        """Retrieve firmware minor version"""
+        return self._get_option("fwm")
 
     @property
     def hardware_version(self):
@@ -876,6 +886,18 @@ class Controller(object):
 
         if self.last_reboot_cause == 99:
             return REBOOT_CAUSE_POWER_ON
+
+    @property
+    def mqtt_settings(self):
+        """Retrieve MQTT settings"""
+        return self._get_variable("mqtt")
+
+    @property
+    def mqtt_enabled(self):
+        """Return if MQTT is enabled"""
+        return (
+            bool(self.mqtt_settings["en"]) if self.mqtt_settings is not None else None
+        )
 
     @property
     def programs(self):

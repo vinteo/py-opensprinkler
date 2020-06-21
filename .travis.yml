@@ -58,4 +58,4 @@ jobs:
       name: Test Against Firmware 219 (4)
       script:
         - curl 'http://localhost:4219/sp?pw=opendoor&npw=a6d82bced638de3def1e9bbb4983225c&cpw=a6d82bced638de3def1e9bbb4983225c'
-        - CONTROLLER_URL=http://localhost:4219 CONTROLLER_FIRMWARE=219_4 pytest tests/run_on_firmware.py
+        - CONTROLLER_URL=http://localhost:4219 CONTROLLER_FIRMWARE=219.4 pytest tests/run_on_firmware.py
