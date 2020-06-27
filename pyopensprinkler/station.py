@@ -200,6 +200,13 @@ class Station(object):
         return self._controller._timestamp_to_utc(self._get_status_variable(2))
 
     @property
+    def end_time(self):
+        """Retrieve end time"""
+        if self.start_time == 0:
+            return 0
+        return self._controller.device_time + self.seconds_remaining
+
+    @property
     def max_name_length(self):
         return self._controller._state["stations"]["maxlen"]
 
