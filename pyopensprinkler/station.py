@@ -197,7 +197,7 @@ class Station(object):
     @property
     def start_time(self):
         """Retrieve start time"""
-        return self._get_status_variable(2)
+        return self._controller._timestamp_to_utc(self._get_status_variable(2))
 
     @property
     def max_name_length(self):
