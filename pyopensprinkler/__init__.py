@@ -328,6 +328,10 @@ class Controller(object):
 
         return ip
 
+    def _timestamp_to_utc(self, timestamp):
+        offset = (self._get_option("tz") - 48) * 15 * 60
+        return timestamp if timestamp == 0 else timestamp - offset
+
     # controller variables
     def enable(self):
         """Enable operation"""
@@ -516,7 +520,7 @@ class Controller(object):
     @property
     def last_run_end_time(self):
         """Retrieve last run end time"""
-        return self._get_variable("lrun")[3]
+        return self._timestamp_to_utc(self._get_variable("lrun")[3])
 
     @property
     def rssi(self):
@@ -793,12 +797,12 @@ class Controller(object):
     @property
     def last_weather_call(self):
         """Retrieve last weather call"""
-        return self._get_variable("lwc")
+        return self._timestamp_to_utc(self._get_variable("lwc"))
 
     @property
     def last_successfull_weather_call(self):
         """Retrieve last successfull weather call"""
-        return self._get_variable("lswc")
+        return self._timestamp_to_utc(self._get_variable("lswc"))
 
     @property
     def last_weather_call_error(self):
@@ -841,7 +845,7 @@ class Controller(object):
     @property
     def last_reboot_time(self):
         """Retrieve last device reboot time"""
-        return self._get_variable("lupt")
+        return self._timestamp_to_utc(self._get_variable("lupt"))
 
     @property
     def last_reboot_cause(self):
