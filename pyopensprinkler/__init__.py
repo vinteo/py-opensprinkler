@@ -1,4 +1,5 @@
 """Main OpenSprinkler module."""
+import datetime
 import functools
 import hashlib
 import json
@@ -86,6 +87,7 @@ class Controller(object):
         self._programs = {}
         self._stations = {}
         self._state = None
+        self._last_refresh_time = None
         self._skip_all_endpoint = os.environ.get(
             "PYOPENSPRINKLER_SKIP_ALL_ENDPOINT", None
         )
@@ -185,6 +187,7 @@ class Controller(object):
     def refresh(self):
         """Refresh programs and stations"""
         self._refresh_state()
+        self._last_refresh_time = int(round(datetime.datetime.now().timestamp()))
 
         for i, _ in enumerate(self._state["programs"]["pd"]):
             if i not in self._programs:
@@ -401,6 +404,11 @@ class Controller(object):
         return content["result"]
 
     @property
+    def last_refresh_time(self):
+        """Retrieve last refresh time"""
+        return self._last_refresh_time
+
+    @property
     def enabled(self):
         """Retrieve operation enabled"""
         return bool(self._get_variable("en"))
@@ -445,6 +453,11 @@ class Controller(object):
     def device_id(self):
         """Retrieve device ID"""
         return self._get_option("devid")
+
+    @property
+    def device_time(self):
+        """Retrieve device time"""
+        return self._timestamp_to_utc(self._get_variable("devt"))
 
     @property
     def ignore_password_enabled(self):
