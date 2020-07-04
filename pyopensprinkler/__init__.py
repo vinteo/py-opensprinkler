@@ -14,6 +14,13 @@ from backoff import expo, on_exception
 from pyopensprinkler.program import Program
 from pyopensprinkler.station import Station
 from pyopensprinkler.const import (
+    HARDWARE_TYPE_AC,
+    HARDWARE_TYPE_DC,
+    HARDWARE_TYPE_LATCHING,
+    HARDWARE_VERSION_OSPI,
+    HARDWARE_VERSION_OSBO,
+    HARDWARE_VERSION_LINUX,
+    HARDWARE_VERSION_DEMO,
     REBOOT_CAUSE_FACTORY_RESET,
     REBOOT_CAUSE_RESET_BUTTON,
     REBOOT_CAUSE_AP_RESET,
@@ -424,6 +431,15 @@ class Controller(object):
         return self._get_option("fwv")
 
     @property
+    def firmware_version_name(self):
+        """Retrieve firmware version name"""
+        fwv = self.firmware_version
+        try:
+            return f"{ int( fwv / 100 )}.{ int( fwv / 10 ) % 10 }.{ fwv % 10 }"
+        except TypeError:
+            return None
+
+    @property
     def firmware_minor_version(self):
         """Retrieve firmware minor version"""
         return self._get_option("fwm")
@@ -434,6 +450,26 @@ class Controller(object):
         return self._get_option("hwv")
 
     @property
+    def hardware_version_name(self):
+        """Retrieve hardware version name"""
+        if self.hardware_version == HARDWARE_VERSION_OSPI:
+            return "OSPi"
+
+        if self.hardware_version == HARDWARE_VERSION_OSBO:
+            return "OSBo"
+
+        if self.hardware_version == HARDWARE_VERSION_LINUX:
+            return "Linux"
+
+        if self.hardware_version == HARDWARE_VERSION_DEMO:
+            return "Demo"
+
+        try:
+            return f"{ int( self.hardware_version / 10 ) % 10 }.{ self.hardware_version % 10 }"
+        except TypeError:
+            return None
+
+    @property
     def hardware_type(self):
         """Retrieve hardware type"""
         return self._get_option("hwt")
@@ -441,13 +477,16 @@ class Controller(object):
     @property
     def hardware_type_name(self):
         """Retrieve hardware type name"""
-        if self.hardware_type == 172:
-            return "ac_power"
+        if self.hardware_type == HARDWARE_TYPE_AC:
+            return "AC"
 
-        if self.hardware_type == 220:
-            return "dc_power"
+        if self.hardware_type == HARDWARE_TYPE_DC:
+            return "DC"
 
-        raise ValueError("unknown hardware type value")
+        if self.hardware_type == HARDWARE_TYPE_LATCHING:
+            return "Latching"
+
+        return None
 
     @property
     def device_id(self):
