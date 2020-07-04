@@ -204,7 +204,9 @@ class Station(object):
         """Retrieve end time"""
         if self.start_time == 0:
             return 0
-        return self._controller.device_time + self.seconds_remaining
+        return (
+            max(self.start_time, self._controller.device_time) + self.seconds_remaining
+        )
 
     @property
     def max_name_length(self):
