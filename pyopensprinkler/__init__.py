@@ -93,8 +93,10 @@ class Controller(object):
         self._opts = opts
         self._programs = {}
         self._stations = {}
+        self._previous_state = None
         self._state = None
         self._last_refresh_time = None
+        self._program_observers = []
         self._skip_all_endpoint = os.environ.get(
             "PYOPENSPRINKLER_SKIP_ALL_ENDPOINT", None
         )
@@ -194,12 +196,52 @@ class Controller(object):
     def refresh(self):
         """Refresh programs and stations"""
         self._refresh_state()
-        self._last_refresh_time = int(round(datetime.datetime.now().timestamp()))
 
+        # trigger program removed
+        if self._previous_state is not None:
+            for i, _ in enumerate(self._previous_state["programs"]["pd"]):
+                # index no longer exists
+                # names no longer match
+                if (i >= len(self._state["programs"]["pd"])) or (
+                    (i < len(self._state["programs"]["pd"]))
+                    and self._previous_state["programs"]["pd"][i][5]
+                    != self._state["programs"]["pd"][i][5]
+                ):
+                    # invoke removal callback on current instance
+                    for observer in self.programs[i]._on_removed_observers:
+                        print("invoking program on removed observers")
+                        observer(self.programs[i])
+
+                    # call observers
+                    for observer in self._program_observers:
+                        observer(self, "removed", i)
+
+        # make controller current
         for i, _ in enumerate(self._state["programs"]["pd"]):
             if i not in self._programs:
                 self._programs[i] = Program(self, i)
 
+        # trigger program added
+        if self._previous_state is not None:
+            for i, _ in enumerate(self._state["programs"]["pd"]):
+                # index is new
+                # names no longer match
+                if (i >= len(self._previous_state["programs"]["pd"])) or (
+                    (i < len(self._previous_state["programs"]["pd"]))
+                    and self._previous_state["programs"]["pd"][i][5]
+                    != self._state["programs"]["pd"][i][5]
+                ):
+                    # call observers
+                    for observer in self._program_observers:
+                        observer(self, "added", i)
+        else:
+            # all are newly added
+            for i, _ in enumerate(self._state["programs"]["pd"]):
+                # call observers
+                for observer in self._program_observers:
+                    observer(self, "added", i)
+
+        # setup stations
         for i, _ in enumerate(self._state["stations"]["snames"]):
             if i not in self._stations:
                 self._stations[i] = Station(self, i)
@@ -212,7 +254,7 @@ class Controller(object):
         if use_ja:
             try:
                 (_, content) = self.request("/ja")
-                self._state = content
+                self._set_state(content)
                 return
             except OpenSprinklerApiError as exc:
                 (_, err_code) = exc.args
@@ -237,7 +279,12 @@ class Controller(object):
             "programs": programs,
         }
 
+        self._set_state(content)
+
+    def _set_state(self, content):
+        self._previous_state = self._state
         self._state = content
+        self._last_refresh_time = int(round(datetime.datetime.now().timestamp()))
 
     def _retrieve_state(self):
         if self._state == None:
@@ -341,6 +388,9 @@ class Controller(object):
     def _timestamp_to_utc(self, timestamp):
         offset = (self._get_option("tz") - 48) * 15 * 60
         return timestamp if timestamp == 0 else timestamp - offset
+
+    def add_program_observer(self, observer):
+        self._program_observers.append(observer)
 
     # controller variables
     def enable(self):

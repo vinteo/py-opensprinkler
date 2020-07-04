@@ -16,6 +16,7 @@ class Program(object):
         """Program class initializer."""
         self._controller = controller
         self._index = index
+        self._on_removed_observers = []
 
     def _get_program_data(self):
         return self._controller._state["programs"]["pd"][self._index]
@@ -66,6 +67,9 @@ class Program(object):
 
     def _set_data_flag_bit(self, index, value):
         print("foo")
+
+    def add_on_removed_observer(self, observer):
+        self._on_removed_observers.append(observer)
 
     def enable(self):
         """Enable operation"""
