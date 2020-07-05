@@ -209,17 +209,32 @@ class Controller(object):
                 ):
                     # invoke removal callback on current instance
                     for observer in self.programs[i]._on_removed_observers:
-                        print("invoking program on removed observers")
                         observer(self.programs[i])
 
                     # call observers
                     for observer in self._program_observers:
-                        observer(self, "removed", i)
+                        observer("removed", self.programs[i])
 
         # make controller current
         for i, _ in enumerate(self._state["programs"]["pd"]):
             if i not in self._programs:
                 self._programs[i] = Program(self, i)
+            else:
+                # check same name
+                if (
+                    (i < len(self._previous_state["programs"]["pd"]))
+                    and self._previous_state["programs"]["pd"][i][5]
+                    != self._state["programs"]["pd"][i][5]
+                ):
+                    self._programs[i] = Program(self, i)
+
+        # remove any dangling programs
+        keys = list(self.programs.keys())
+        for i in keys:
+            try:
+                self._state["programs"]["pd"][i]
+            except IndexError:
+                del self._programs[i]
 
         # trigger program added
         if self._previous_state is not None:
@@ -233,13 +248,13 @@ class Controller(object):
                 ):
                     # call observers
                     for observer in self._program_observers:
-                        observer(self, "added", i)
+                        observer("added", self.programs[i])
         else:
             # all are newly added
             for i, _ in enumerate(self._state["programs"]["pd"]):
                 # call observers
                 for observer in self._program_observers:
-                    observer(self, "added", i)
+                    observer("added", self.programs[i])
 
         # setup stations
         for i, _ in enumerate(self._state["stations"]["snames"]):
