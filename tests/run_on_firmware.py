@@ -18,6 +18,18 @@ class TestFirmware:
         assert self._controller.firmware_version, int(FIRMWARE_VERSION)
         assert self._controller.firmware_minor_version >= 0
 
+    @pytest.mark.skipif(FIRMWARE_VERSION > 217, reason="only for version 217 and below")
+    def test_last_reboot_time_old(self):
+        self._controller.refresh()
+        assert self._controller.last_reboot_time == None
+
+    @pytest.mark.skipif(
+        FIRMWARE_VERSION <= 217, reason="only for version 218 and above"
+    )
+    def test_last_reboot_time_new(self):
+        self._controller.refresh()
+        assert self._controller.last_reboot_time >= 0
+
     @pytest.mark.skipif(FIRMWARE_VERSION > 219, reason="only for version 219 and below")
     def test_no_mac_address(self):
         self._controller.refresh()
