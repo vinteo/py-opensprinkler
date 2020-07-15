@@ -339,6 +339,8 @@ class Controller(object):
         return ip
 
     def _timestamp_to_utc(self, timestamp):
+        if timestamp == None:
+            return None
         offset = (self._get_option("tz") - 48) * 15 * 60
         return timestamp if timestamp == 0 else timestamp - offset
 
