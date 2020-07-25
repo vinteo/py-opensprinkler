@@ -30,22 +30,22 @@ class Station(object):
         """
         return self._controller._state["settings"]["ps"][self._index][statusIndex]
 
-    def _manual_run(self, params=None):
+    async def _manual_run(self, params=None):
         """Manual station run"""
         if params is None:
             params = {}
         params["sid"] = self._index
-        (_, content) = self._controller.request("/cm", params)
+        (_, content) = await self._controller.request("/cm", params)
         return content["result"]
 
-    def _set_attribute(self, attribute, value):
-        return self._set_attributes({attribute: value})
+    async def _set_attribute(self, attribute, value):
+        return await self._set_attributes({attribute: value})
 
-    def _set_attributes(self, params=None):
+    async def _set_attributes(self, params=None):
         if params is None:
             params = {}
 
-        (_, content) = self._controller.request("/cs", params)
+        (_, content) = await self._controller.request("/cs", params)
         return content["result"]
 
     def _bit_check(self, bit_property):
@@ -59,7 +59,7 @@ class Station(object):
 
         return bool(bits[position])
 
-    def _bit_set(self, bit_property, bit_update_name, value):
+    async def _bit_set(self, bit_property, bit_update_name, value):
         bits = self._controller._state["stations"][bit_property]
         bank = math.floor(self._index / 8)
         bits = list(reversed([int(x) for x in list("{0:08b}".format(bits[bank]))]))
@@ -69,92 +69,92 @@ class Station(object):
         bits = list(reversed(bits))
         bits = "".join(map(str, bits))
         bits = int(bits, 2)
-        return self._set_attribute(bit_update_name + str(bank), bits)
+        return await self._set_attribute(bit_update_name + str(bank), bits)
 
-    def run(self, seconds=None):
+    async def run(self, seconds=None):
         """Run station"""
         if seconds is None:
             seconds = 60
         params = {"en": 1, "t": seconds}
-        return self._manual_run(params)
+        return await self._manual_run(params)
 
-    def stop(self):
+    async def stop(self):
         """Stop station"""
         params = {"en": 0}
-        return self._manual_run(params)
+        return await self._manual_run(params)
 
-    def toggle(self):
+    async def toggle(self):
         """Toggle station"""
-        self._controller.refresh()
+        await self._controller.refresh()
         if self.is_running:
-            return self.stop()
+            return await self.stop()
         else:
-            return self.run()
+            return await self.run()
 
-    def set_name(self, name):
-        return self._set_attribute("s" + str(self.index), name)
+    async def set_name(self, name):
+        return await self._set_attribute("s" + str(self.index), name)
 
-    def enable(self):
-        return self.set_enabled(True)
+    async def enable(self):
+        return await self.set_enabled(True)
 
-    def disable(self):
-        return self.set_enabled(False)
+    async def disable(self):
+        return await self.set_enabled(False)
 
-    def set_enabled(self, value):
+    async def set_enabled(self, value):
         bit_property = "stn_dis"
         bit_update_name = "d"
         if value:
-            return self._bit_set(bit_property, bit_update_name, False)
+            return await self._bit_set(bit_property, bit_update_name, False)
         else:
-            return self._bit_set(bit_property, bit_update_name, True)
+            return await self._bit_set(bit_property, bit_update_name, True)
 
-    def set_master_1_operation_enabled(self, value):
+    async def set_master_1_operation_enabled(self, value):
         bit_property = "masop"
         bit_update_name = "m"
         if value:
-            return self._bit_set(bit_property, bit_update_name, True)
+            return await self._bit_set(bit_property, bit_update_name, True)
         else:
-            return self._bit_set(bit_property, bit_update_name, False)
+            return await self._bit_set(bit_property, bit_update_name, False)
 
-    def set_master_2_operation_enabled(self, value):
+    async def set_master_2_operation_enabled(self, value):
         bit_property = "masop2"
         bit_update_name = "n"
         if value:
-            return self._bit_set(bit_property, bit_update_name, True)
+            return await self._bit_set(bit_property, bit_update_name, True)
         else:
-            return self._bit_set(bit_property, bit_update_name, False)
+            return await self._bit_set(bit_property, bit_update_name, False)
 
-    def set_rain_delay_ignored(self, value):
+    async def set_rain_delay_ignored(self, value):
         bit_property = "ignore_rain"
         bit_update_name = "i"
         if value:
-            return self._bit_set(bit_property, bit_update_name, True)
+            return await self._bit_set(bit_property, bit_update_name, True)
         else:
-            return self._bit_set(bit_property, bit_update_name, False)
+            return await self._bit_set(bit_property, bit_update_name, False)
 
-    def set_sensor_1_ignored(self, value):
+    async def set_sensor_1_ignored(self, value):
         bit_property = "ignore_sn1"
         bit_update_name = "j"
         if value:
-            return self._bit_set(bit_property, bit_update_name, True)
+            return await self._bit_set(bit_property, bit_update_name, True)
         else:
-            return self._bit_set(bit_property, bit_update_name, False)
+            return await self._bit_set(bit_property, bit_update_name, False)
 
-    def set_sensor_2_ignored(self, value):
+    async def set_sensor_2_ignored(self, value):
         bit_property = "ignore_sn2"
         bit_update_name = "k"
         if value:
-            return self._bit_set(bit_property, bit_update_name, True)
+            return await self._bit_set(bit_property, bit_update_name, True)
         else:
-            return self._bit_set(bit_property, bit_update_name, False)
+            return await self._bit_set(bit_property, bit_update_name, False)
 
-    def set_sequential_operation(self, value):
+    async def set_sequential_operation(self, value):
         bit_property = "stn_seq"
         bit_update_name = "q"
         if value:
-            return self._bit_set(bit_property, bit_update_name, True)
+            return await self._bit_set(bit_property, bit_update_name, True)
         else:
-            return self._bit_set(bit_property, bit_update_name, False)
+            return await self._bit_set(bit_property, bit_update_name, False)
 
     @property
     def name(self):

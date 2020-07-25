@@ -8,7 +8,7 @@ import threading
 import time
 import urllib
 
-import httplib2
+import aiohttp
 from backoff import expo, on_exception
 
 from pyopensprinkler.program import Program
@@ -95,6 +95,7 @@ class Controller(object):
         self._stations = {}
         self._state = None
         self._last_refresh_time = None
+        self._http_client = None
         self._skip_all_endpoint = os.environ.get(
             "PYOPENSPRINKLER_SKIP_ALL_ENDPOINT", None
         )
@@ -111,9 +112,6 @@ class Controller(object):
 
         self.refresh_on_update = None
 
-        client = httplib2.Http()
-        client.follow_all_redirects = True
-
         if "auto_refresh_on_update" not in opts:
             opts["auto_refresh_on_update"] = {}
 
@@ -123,15 +121,26 @@ class Controller(object):
         if "settle_time" not in opts["auto_refresh_on_update"]:
             opts["auto_refresh_on_update"]["settle_time"] = 1
 
-        if "http_username" in opts:
-            client.add_credentials(opts.http_username, opts.http_password)
+    def session_start(self):
+        timeout = aiohttp.ClientTimeout(total=60)
+        headers = {"Accept": "*/*", "Connection": "keep-alive"}
+        client = aiohttp.ClientSession(timeout=timeout, headers=headers)
 
-        if "verify_ssl" in opts:
-            client.disable_ssl_certificate_validation = not opts.verify_ssl
+        if "http_username" in self._opts:
+            client.auth = aiohttp.BasicAuth(
+                self._opts.http_username, self._opts.http_password
+            )
+
+        if "verify_ssl" in self._opts:
+            client.verify_ssl = self._opts.verify_ssl
 
         self._http_client = client
 
-    def request(self, path, params=None, raw_qs=None, refresh_on_update=None):
+    async def session_close(self):
+        await self._http_client.close()
+        self._http_client = None
+
+    async def request(self, path, params=None, raw_qs=None, refresh_on_update=None):
         if params is None:
             params = {}
         """Make a request to the API."""
@@ -141,7 +150,7 @@ class Controller(object):
             qs = qs + "&" + raw_qs
         url = f"{self._baseUrl}{path}?{qs}"
 
-        (resp, content) = self.request_http(url)
+        (resp, content) = await self.request_http(url)
 
         refresh = self._opts["auto_refresh_on_update"]["enabled"]
         if self.refresh_on_update is not None:
@@ -158,17 +167,18 @@ class Controller(object):
             # .75 was mostly good but still too fast at times
             #   1 was consistently enough time
             time.sleep(float(self._opts["auto_refresh_on_update"]["settle_time"]))
-            self.refresh()
+            await self.refresh()
 
         return resp, content
 
     @synchronized(lock)
     @on_exception(expo, OpenSprinklerConnectionError, max_tries=3)
-    def request_http(self, url):
+    async def request_http(self, url):
         try:
-            headers = {"Accept": "*/*", "Connection": "keep-alive"}
-            (resp, content) = self._http_client.request(url, "GET", headers=headers)
-            content = json.loads(content.decode("UTF-8"))
+            if self._http_client == None:
+                self.session_start()
+            resp = await self._http_client.get(url)
+            content = await resp.json(encoding="UTF-8")
 
             if len(content) == 1:
                 if "result" in content:
@@ -182,7 +192,7 @@ class Controller(object):
                     raise OpenSprinklerAuthError("Invalid password")
 
             return resp, content
-        except httplib2.HttpLib2Error as exc:
+        except aiohttp.ClientConnectionError as exc:
             raise OpenSprinklerConnectionError("Cannot connect to controller") from exc
         except ConnectionError as exc:
             raise OpenSprinklerConnectionError("Cannot connect to controller") from exc
@@ -191,9 +201,9 @@ class Controller(object):
         except KeyError as exc:
             raise OpenSprinklerAuthError("Invalid password") from exc
 
-    def refresh(self):
+    async def refresh(self):
         """Refresh programs and stations"""
-        self._refresh_state()
+        await self._refresh_state()
         self._last_refresh_time = int(round(datetime.datetime.now().timestamp()))
 
         for i, _ in enumerate(self._state["programs"]["pd"]):
@@ -204,14 +214,14 @@ class Controller(object):
             if i not in self._stations:
                 self._stations[i] = Station(self, i)
 
-    def _refresh_state(self):
+    async def _refresh_state(self):
         use_ja = True
         if self._skip_all_endpoint is not None:
             use_ja = not self._skip_all_endpoint
 
         if use_ja:
             try:
-                (_, content) = self.request("/ja")
+                (_, content) = await self.request("/ja")
                 self._state = content
                 return
             except OpenSprinklerApiError as exc:
@@ -224,11 +234,11 @@ class Controller(object):
 
         # Backwards compatibility for pre 2.1.6
         # Fallback
-        (_, settings) = self.request("/jc")
-        (_, options) = self.request("/jo")
-        (_, stations) = self.request("/jn")
-        (_, status) = self.request("/js")
-        (_, programs) = self.request("/jp")
+        (_, settings) = await self.request("/jc")
+        (_, options) = await self.request("/jo")
+        (_, stations) = await self.request("/jn")
+        (_, status) = await self.request("/js")
+        (_, programs) = await self.request("/jp")
         content = {
             "settings": settings,
             "options": options,
@@ -255,15 +265,10 @@ class Controller(object):
         """Retrieve options"""
         return self._retrieve_state()["options"]
 
-    def _set_option(self, option, value):
+    async def _set_option(self, option, value):
         """Set option"""
         params = {option: value}
-        (_, content) = self.request("/co", params)
-        return content["result"]
-
-    def _set_options(self, options):
-        """Set options"""
-        (_, content) = self.request("/co", options)
+        (_, content) = await self.request("/co", params)
         return content["result"]
 
     def _get_variable(self, option):
@@ -277,15 +282,10 @@ class Controller(object):
         """Retrieve variables"""
         return self._retrieve_state()["settings"]
 
-    def _set_variable(self, variable, value):
+    async def _set_variable(self, variable, value):
         """Set variable"""
         params = {variable: value}
-        (_, content) = self.request("/cv", params)
-        return content["result"]
-
-    def _set_variables(self, variables):
-        """Set variables"""
-        (_, content) = self.request("/cv", variables)
+        (_, content) = await self.request("/cv", params)
         return content["result"]
 
     def _sensor_type_to_name(self, sensor_type):
@@ -345,18 +345,18 @@ class Controller(object):
         return timestamp if timestamp == 0 else timestamp - offset
 
     # controller variables
-    def enable(self):
+    async def enable(self):
         """Enable operation"""
-        return self._set_variable("en", 1)
+        return await self._set_variable("en", 1)
 
-    def disable(self):
+    async def disable(self):
         """Disable operation"""
-        return self._set_variable("en", 0)
+        return await self._set_variable("en", 0)
 
-    def reboot(self):
-        return self._set_variable("rbt", 1)
+    async def reboot(self):
+        return await self._set_variable("rbt", 1)
 
-    def set_rain_delay(self, hours):
+    async def set_rain_delay(self, hours):
         """
         Set rain delay time (in hours). Range is 0 to 32767. A value of 0 turns off rain delay.
         """
@@ -364,26 +364,26 @@ class Controller(object):
         if hours < 0 or hours > 32767:
             raise ValueError("level must be 0-32767")
 
-        return self._set_variable("rd", hours)
+        return await self._set_variable("rd", hours)
 
-    def disable_rain_delay(self):
-        return self._set_variable("rd", 0)
+    async def disable_rain_delay(self):
+        return await self._set_variable("rd", 0)
 
-    def enable_remote_extension_mode(self):
-        return self._set_variable("re", 1)
+    async def enable_remote_extension_mode(self):
+        return await self._set_variable("re", 1)
 
-    def disable_remote_extension_mode(self):
-        return self._set_variable("re", 0)
+    async def disable_remote_extension_mode(self):
+        return await self._set_variable("re", 0)
 
-    def stop_all_stations(self):
+    async def stop_all_stations(self):
         """Stop all running and waiting stations"""
-        return self._set_variable("rsn", 1)
+        return await self._set_variable("rsn", 1)
 
-    def firmware_update(self):
-        return self._set_variable("update", 1)
+    async def firmware_update(self):
+        return await self._set_variable("update", 1)
 
     # controller options
-    def set_water_level(self, level):
+    async def set_water_level(self, level):
         """
         Water level (i.e. % Watering). Acceptable range is 0 to 250.
         """
@@ -391,24 +391,24 @@ class Controller(object):
         if level < 0 or level > 250:
             raise ValueError("level must be 0-250")
 
-        return self._set_option("wl", level)
+        return await self._set_option("wl", level)
 
-    def run_once_program(self, station_times):
+    async def run_once_program(self, station_times):
         """Run once program"""
         params = {"t": station_times}
 
         t = json.dumps(params.pop("t", None)).replace(" ", "")
         t = t.strip()
 
-        (_, content) = self.request("/cr", None, f"t={t}")
+        (_, content) = await self.request("/cr", None, f"t={t}")
         return content["result"]
 
-    def set_password(self, password):
+    async def set_password(self, password):
         """Set password"""
         md5password = hashlib.md5(password.encode("utf-8")).hexdigest()
         params = {"pw": self._md5password, "npw": md5password, "cpw": md5password}
 
-        (_, content) = self.request("/sp", params)
+        (_, content) = await self.request("/sp", params)
         self._md5password = md5password
         return content["result"]
 
