@@ -1,4 +1,5 @@
 """Main OpenSprinkler module."""
+import asyncio
 import datetime
 import functools
 import hashlib
@@ -112,6 +113,9 @@ class Controller(object):
 
         self.refresh_on_update = None
 
+        if "session" in opts:
+            self._http_client = opts["session"]
+
         if "auto_refresh_on_update" not in opts:
             opts["auto_refresh_on_update"] = {}
 
@@ -122,23 +126,13 @@ class Controller(object):
             opts["auto_refresh_on_update"]["settle_time"] = 1
 
     def session_start(self):
-        timeout = aiohttp.ClientTimeout(total=60)
-        headers = {"Accept": "*/*", "Connection": "keep-alive"}
-        client = aiohttp.ClientSession(timeout=timeout, headers=headers)
-
-        if "http_username" in self._opts:
-            client.auth = aiohttp.BasicAuth(
-                self._opts.http_username, self._opts.http_password
-            )
-
-        if "verify_ssl" in self._opts:
-            client.verify_ssl = self._opts.verify_ssl
-
+        client = aiohttp.ClientSession()
         self._http_client = client
 
     async def session_close(self):
-        await self._http_client.close()
-        self._http_client = None
+        if "session" not in self._opts:
+            await self._http_client.close()
+            self._http_client = None
 
     async def request(self, path, params=None, raw_qs=None, refresh_on_update=None):
         if params is None:
@@ -150,7 +144,7 @@ class Controller(object):
             qs = qs + "&" + raw_qs
         url = f"{self._baseUrl}{path}?{qs}"
 
-        (resp, content) = await self.request_http(url)
+        content = await self._request_http(url)
 
         refresh = self._opts["auto_refresh_on_update"]["enabled"]
         if self.refresh_on_update is not None:
@@ -166,32 +160,50 @@ class Controller(object):
             #  .5 was mostly good but still too fast at times
             # .75 was mostly good but still too fast at times
             #   1 was consistently enough time
-            time.sleep(float(self._opts["auto_refresh_on_update"]["settle_time"]))
+            await asyncio.sleep(
+                float(self._opts["auto_refresh_on_update"]["settle_time"])
+            )
             await self.refresh()
 
-        return resp, content
+        return content
 
     @synchronized(lock)
     @on_exception(expo, OpenSprinklerConnectionError, max_tries=3)
-    async def request_http(self, url):
+    async def _request_http(self, url):
         try:
             if self._http_client == None:
                 self.session_start()
-            resp = await self._http_client.get(url)
-            content = await resp.json(encoding="UTF-8")
 
-            if len(content) == 1:
-                if "result" in content:
-                    if content["result"] == 2:
+            timeout = aiohttp.ClientTimeout(total=60)
+            headers = {"Accept": "*/*", "Connection": "keep-alive"}
+
+            auth = None
+            if "http_username" in self._opts:
+                auth = aiohttp.BasicAuth(
+                    self._opts.http_username, self._opts.http_password
+                )
+
+            verify_ssl = None
+            if "verify_ssl" in self._opts:
+                verify_ssl = self._opts.verify_ssl
+
+            async with self._http_client.get(
+                url, timeout=timeout, headers=headers, verify_ssl=verify_ssl, auth=auth
+            ) as resp:
+                content = await resp.json(encoding="UTF-8")
+
+                if len(content) == 1:
+                    if "result" in content:
+                        if content["result"] == 2:
+                            raise OpenSprinklerAuthError("Invalid password")
+                        elif content["result"] > 2:
+                            raise OpenSprinklerApiError(
+                                f"Error code: {content['result']}", content["result"]
+                            )
+                    elif "fwv" in content:
                         raise OpenSprinklerAuthError("Invalid password")
-                    elif content["result"] > 2:
-                        raise OpenSprinklerApiError(
-                            f"Error code: {content['result']}", content["result"]
-                        )
-                elif "fwv" in content:
-                    raise OpenSprinklerAuthError("Invalid password")
 
-            return resp, content
+                return content
         except aiohttp.ClientConnectionError as exc:
             raise OpenSprinklerConnectionError("Cannot connect to controller") from exc
         except ConnectionError as exc:
@@ -221,7 +233,7 @@ class Controller(object):
 
         if use_ja:
             try:
-                (_, content) = await self.request("/ja")
+                content = await self.request("/ja")
                 self._state = content
                 return
             except OpenSprinklerApiError as exc:
@@ -234,11 +246,11 @@ class Controller(object):
 
         # Backwards compatibility for pre 2.1.6
         # Fallback
-        (_, settings) = await self.request("/jc")
-        (_, options) = await self.request("/jo")
-        (_, stations) = await self.request("/jn")
-        (_, status) = await self.request("/js")
-        (_, programs) = await self.request("/jp")
+        settings = await self.request("/jc")
+        options = await self.request("/jo")
+        stations = await self.request("/jn")
+        status = await self.request("/js")
+        programs = await self.request("/jp")
         content = {
             "settings": settings,
             "options": options,
@@ -268,7 +280,7 @@ class Controller(object):
     async def _set_option(self, option, value):
         """Set option"""
         params = {option: value}
-        (_, content) = await self.request("/co", params)
+        content = await self.request("/co", params)
         return content["result"]
 
     def _get_variable(self, option):
@@ -285,7 +297,7 @@ class Controller(object):
     async def _set_variable(self, variable, value):
         """Set variable"""
         params = {variable: value}
-        (_, content) = await self.request("/cv", params)
+        content = await self.request("/cv", params)
         return content["result"]
 
     def _sensor_type_to_name(self, sensor_type):
@@ -400,7 +412,7 @@ class Controller(object):
         t = json.dumps(params.pop("t", None)).replace(" ", "")
         t = t.strip()
 
-        (_, content) = await self.request("/cr", None, f"t={t}")
+        content = await self.request("/cr", None, f"t={t}")
         return content["result"]
 
     async def set_password(self, password):
@@ -408,7 +420,7 @@ class Controller(object):
         md5password = hashlib.md5(password.encode("utf-8")).hexdigest()
         params = {"pw": self._md5password, "npw": md5password, "cpw": md5password}
 
-        (_, content) = await self.request("/sp", params)
+        content = await self.request("/sp", params)
         self._md5password = md5password
         return content["result"]
 

@@ -35,7 +35,7 @@ class Station(object):
         if params is None:
             params = {}
         params["sid"] = self._index
-        (_, content) = await self._controller.request("/cm", params)
+        content = await self._controller.request("/cm", params)
         return content["result"]
 
     async def _set_attribute(self, attribute, value):
@@ -45,7 +45,7 @@ class Station(object):
         if params is None:
             params = {}
 
-        (_, content) = await self._controller.request("/cs", params)
+        content = await self._controller.request("/cs", params)
         return content["result"]
 
     def _bit_check(self, bit_property):
