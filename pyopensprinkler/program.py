@@ -50,13 +50,13 @@ class Program(object):
 
         v = v.strip()
 
-        (_, content) = await self._controller.request("/cp", params, f"v={v}")
+        content = await self._controller.request("/cp", params, f"v={v}")
         return content["result"]
 
     async def _manual_run(self):
         """Run program"""
         params = {"pid": self._index, "uwt": 0}
-        (_, content) = await self._controller.request("/mp", params)
+        content = await self._controller.request("/mp", params)
         return content["result"]
 
     def _get_data_flag_bits(self):

@@ -130,7 +130,7 @@ class Controller(object):
         self._http_client = client
 
     async def session_close(self):
-        if "session" not in self._opts:
+        if self._http_client is not None and "session" not in self._opts:
             await self._http_client.close()
             self._http_client = None
 
