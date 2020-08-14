@@ -24,11 +24,11 @@ class Program(object):
         """Retrieve variable"""
         return self._get_program_data()[variable_index]
 
-    def _set_variable(self, variable, value):
+    async def _set_variable(self, variable, value):
         """Set variable"""
-        return self._set_variables({variable: value})
+        return await self._set_variables({variable: value})
 
-    def _set_variables(self, params=None):
+    async def _set_variables(self, params=None):
         if params is None:
             params = {}
         params["pid"] = self._index
@@ -50,13 +50,13 @@ class Program(object):
 
         v = v.strip()
 
-        (_, content) = self._controller.request("/cp", params, f"v={v}")
+        content = await self._controller.request("/cp", params, f"v={v}")
         return content["result"]
 
-    def _manual_run(self):
+    async def _manual_run(self):
         """Run program"""
         params = {"pid": self._index, "uwt": 0}
-        (_, content) = self._controller.request("/mp", params)
+        content = await self._controller.request("/mp", params)
         return content["result"]
 
     def _get_data_flag_bits(self):
@@ -64,34 +64,31 @@ class Program(object):
             reversed([int(x) for x in list("{0:08b}".format(self._get_variable(0)))])
         )
 
-    def _set_data_flag_bit(self, index, value):
-        print("foo")
-
-    def enable(self):
+    async def enable(self):
         """Enable operation"""
-        return self.set_enabled(True)
+        return await self.set_enabled(True)
 
-    def disable(self):
+    async def disable(self):
         """Disable operation"""
-        return self.set_enabled(False)
+        return await self.set_enabled(False)
 
-    def set_enabled(self, value):
+    async def set_enabled(self, value):
         if value:
-            return self._set_variable("en", 1)
+            return await self._set_variable("en", 1)
         else:
-            return self._set_variable("en", 0)
+            return await self._set_variable("en", 0)
 
-    def run(self):
+    async def run(self):
         """Run program"""
-        return self._manual_run()
+        return await self._manual_run()
 
-    def set_name(self, name):
-        return self._set_variable("name", name)
+    async def set_name(self, name):
+        return await self._set_variable("name", name)
 
-    def set_use_weather_adjustments(self, value):
-        return self._set_variable("uwt", int(value))
+    async def set_use_weather_adjustments(self, value):
+        return await self._set_variable("uwt", int(value))
 
-    def set_odd_even_restriction(self, value):
+    async def set_odd_even_restriction(self, value):
         dlist = self._get_program_data().copy()
         bits = self._get_data_flag_bits()
 
@@ -127,9 +124,9 @@ class Program(object):
 
         dlist[0] = bits
 
-        return self._set_variable("v", dlist)
+        return await self._set_variable("v", dlist)
 
-    def set_program_schedule_type(self, value):
+    async def set_program_schedule_type(self, value):
         dlist = self._get_program_data().copy()
         bits = self._get_data_flag_bits()
 
@@ -165,9 +162,9 @@ class Program(object):
 
         dlist[0] = bits
 
-        return self._set_variable("v", dlist)
+        return await self._set_variable("v", dlist)
 
-    def set_start_time_type(self, value):
+    async def set_start_time_type(self, value):
         dlist = self._get_program_data().copy()
         bits = self._get_data_flag_bits()
 
@@ -188,17 +185,17 @@ class Program(object):
 
         dlist[0] = bits
 
-        return self._set_variable("v", dlist)
+        return await self._set_variable("v", dlist)
 
-    def set_station_duration(self, station_index, duration):
+    async def set_station_duration(self, station_index, duration):
         dlist = self._get_program_data().copy()
         dlist[4][station_index] = duration
-        return self._set_variable("v", dlist)
+        return await self._set_variable("v", dlist)
 
-    def set_station_durations(self, durations):
+    async def set_station_durations(self, durations):
         dlist = self._get_program_data().copy()
         dlist[4] = durations
-        return self._set_variable("v", dlist)
+        return await self._set_variable("v", dlist)
 
     @property
     def name(self):

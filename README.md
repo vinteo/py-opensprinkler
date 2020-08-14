@@ -19,12 +19,14 @@ pip install pyopensprinkler
 from pyopensprinkler import Controller as OpenSprinklerController
 
 controller = OpenSprinklerController("http[s]://hostname[:port]", "password")
-controller.refresh()
+await controller.refresh()
 
 version = controller.firmware_version
 ```
 
-## Commands
+## Commands and Properties
+
+All commands are async.
 
 ### Controller
 
@@ -47,7 +49,7 @@ Disables controller operation
 is_enabled = controller.programs[0].enabled
 
 program = controller.programs[0]
-program.run()
+await program.run()
 ```
 
 `program.enabled`
@@ -64,7 +66,7 @@ program.run()
 is_enabled = controller.stations[0].enabled
 status = controller.stations[0].status
 station = controller.station[0]
-station.run(120)
+await station.run(120)
 ```
 
 `station.is_running`
