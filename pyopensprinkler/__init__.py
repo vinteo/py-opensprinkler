@@ -180,12 +180,12 @@ class Controller(object):
             auth = None
             if "http_username" in self._opts:
                 auth = aiohttp.BasicAuth(
-                    self._opts.http_username, self._opts.http_password
+                    self._opts["http_username"], self._opts["http_password"]
                 )
 
             verify_ssl = None
             if "verify_ssl" in self._opts:
-                verify_ssl = self._opts.verify_ssl
+                verify_ssl = self._opts["verify_ssl"]
 
             async with self._http_client.get(
                 url, timeout=timeout, headers=headers, verify_ssl=verify_ssl, auth=auth
