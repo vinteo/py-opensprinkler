@@ -85,7 +85,6 @@ class Station(object):
 
     async def toggle(self):
         """Toggle station"""
-        await self._controller.refresh()
         if self.is_running:
             return await self.stop()
         else:
