@@ -1,21 +1,10 @@
-import os
+import asyncio
 import pytest
 
-from pyopensprinkler import Controller as OpenSprinkler
-
-URL = os.environ.get("CONTROLLER_URL") or "http://localhost:8080"
-PASSWORD = os.environ.get("CONTROLLER_PASSWORD") or "opendoor"
-FIRMWARE_VERSION = float(os.environ.get("CONTROLLER_FIRMWARE") or "219")
+from const import FIRMWARE_VERSION
 
 
-@pytest.fixture(scope="function")
-async def controller():
-    controller = OpenSprinkler(URL, PASSWORD)
-    yield controller
-    await controller.session_close()
-
-
-class TestFirmware:
+class TestController:
     @pytest.mark.asyncio
     async def test_firmware_version(self, controller):
         await controller.refresh()
@@ -70,7 +59,9 @@ class TestFirmware:
     async def test_auto_refresh(self, controller):
         await controller.refresh()
         await controller.stations[0].run()
+        await asyncio.sleep(1)
         assert controller.stations[0].is_running == True
 
         await controller.stations[0].stop()
+        await asyncio.sleep(1)
         assert controller.stations[0].is_running == False
