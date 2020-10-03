@@ -1,7 +1,7 @@
 import asyncio
 import pytest
 
-from tests.const import FIRMWARE_VERSION
+from const import FIRMWARE_VERSION
 
 
 class TestController:
