@@ -2,6 +2,7 @@
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/pyopensprinkler)
 ![](https://github.com/vinteo/py-opensprinkler/workflows/Linting/badge.svg)
 [![Build Status](https://travis-ci.org/vinteo/py-opensprinkler.svg?branch=master)](https://travis-ci.org/vinteo/py-opensprinkler)
+[![codecov](https://codecov.io/gh/vinteo/py-opensprinkler/branch/master/graph/badge.svg)](https://codecov.io/gh/vinteo/py-opensprinkler)
 
 # Python module for OpenSprinker API.
 
