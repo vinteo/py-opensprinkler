@@ -6,7 +6,6 @@ import hashlib
 import json
 import os
 import threading
-import time
 import urllib
 
 import aiohttp
@@ -171,7 +170,7 @@ class Controller(object):
     @on_exception(expo, OpenSprinklerConnectionError, max_tries=3)
     async def _request_http(self, url):
         try:
-            if self._http_client == None:
+            if self._http_client is None:
                 self.session_start()
 
             timeout = aiohttp.ClientTimeout(total=60)
@@ -264,7 +263,7 @@ class Controller(object):
         self._state = content
 
     def _retrieve_state(self):
-        if self._state == None:
+        if self._state is None:
             raise OpenSprinklerNoStateError("No state. Please refresh")
         return self._state
 
@@ -353,7 +352,7 @@ class Controller(object):
         return ip
 
     def _timestamp_to_utc(self, timestamp):
-        if timestamp == None:
+        if timestamp is None:
             return None
         offset = (self._get_option("tz") - 48) * 15 * 60
         return timestamp if timestamp == 0 else timestamp - offset

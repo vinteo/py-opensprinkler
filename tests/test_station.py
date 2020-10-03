@@ -1,4 +1,3 @@
-import asyncio
 import pytest
 
 from pyopensprinkler.const import (
@@ -18,20 +17,20 @@ class TestStation:
     @pytest.mark.asyncio
     async def test_is_master(self, controller):
         await controller.refresh()
-        assert controller.stations[0].is_master == False
+        assert not controller.stations[0].is_master
 
     @pytest.mark.skipif(FIRMWARE_VERSION > 215, reason="only for version 215 and below")
     @pytest.mark.asyncio
-    async def test_max_name_length(self, controller):
+    async def test_max_name_length_16(self, controller):
         await controller.refresh()
         assert controller.stations[0].max_name_length == 16
 
     @pytest.mark.skipif(
-        FIRMWARE_VERSION < 216 and FIRMWARE_VERSION > 218,
+        FIRMWARE_VERSION < 216 or FIRMWARE_VERSION > 218,
         reason="only for version 216 to 218",
     )
     @pytest.mark.asyncio
-    async def test_max_name_length(self, controller):
+    async def test_max_name_length_24(self, controller):
         await controller.refresh()
         assert controller.stations[0].max_name_length == 24
 
@@ -45,7 +44,7 @@ class TestStation:
     @pytest.mark.asyncio
     async def test_special(self, controller):
         await controller.refresh()
-        assert controller.stations[0].special == False
+        assert not controller.stations[0].special
 
     @pytest.mark.skipif(FIRMWARE_VERSION < 216, reason="only for version 216 and above")
     @pytest.mark.asyncio
@@ -56,12 +55,12 @@ class TestStation:
     @pytest.mark.asyncio
     async def test_toggle(self, controller):
         await controller.refresh()
-        assert controller.stations[0].is_running == False
+        assert not controller.stations[0].is_running
         assert controller.stations[0].start_time == 0
         assert controller.stations[0].end_time == 0
 
         await controller.stations[0].toggle()
-        assert controller.stations[0].is_running == True
+        assert controller.stations[0].is_running
         assert controller.stations[0].status == STATION_STATUS_MANUAL
         assert controller.stations[0].start_time > 0
         assert controller.stations[0].end_time > 0
@@ -69,7 +68,7 @@ class TestStation:
         assert controller.stations[0].end_time > controller.stations[0].start_time
 
         await controller.stations[0].toggle()
-        assert controller.stations[0].is_running == False
+        assert not controller.stations[0].is_running
         assert controller.stations[0].status == STATION_STATUS_IDLE
         assert controller.stations[0].start_time == 0
         assert controller.stations[0].end_time == 0
@@ -77,13 +76,13 @@ class TestStation:
     @pytest.mark.asyncio
     async def test_enable_disable(self, controller):
         await controller.refresh()
-        assert controller.stations[0].enabled == True
+        assert controller.stations[0].enabled
 
         await controller.stations[0].disable()
-        assert controller.stations[0].enabled == False
+        assert not controller.stations[0].enabled
 
         await controller.stations[0].enable()
-        assert controller.stations[0].enabled == True
+        assert controller.stations[0].enabled
 
     @pytest.mark.asyncio
     async def test_set_name(self, controller):
@@ -95,54 +94,54 @@ class TestStation:
     async def test_set_master_1_operation_enabled(self, controller):
         await controller.refresh()
         await controller.stations[0].set_master_1_operation_enabled(True)
-        assert controller.stations[0].master_1_operation_enabled == True
+        assert controller.stations[0].master_1_operation_enabled
 
         await controller.stations[0].set_master_1_operation_enabled(False)
-        assert controller.stations[0].master_1_operation_enabled == False
+        assert not controller.stations[0].master_1_operation_enabled
 
     @pytest.mark.asyncio
     async def test_set_master_2_operation_enabled(self, controller):
         await controller.refresh()
         await controller.stations[0].set_master_2_operation_enabled(True)
-        assert controller.stations[0].master_2_operation_enabled == True
+        assert controller.stations[0].master_2_operation_enabled
 
         await controller.stations[0].set_master_2_operation_enabled(False)
-        assert controller.stations[0].master_2_operation_enabled == False
+        assert not controller.stations[0].master_2_operation_enabled
 
     @pytest.mark.skipif(FIRMWARE_VERSION < 219, reason="only for version 219 and above")
     @pytest.mark.asyncio
     async def test_set_sensor_1_ignored(self, controller):
         await controller.refresh()
         await controller.stations[0].set_sensor_1_ignored(True)
-        assert controller.stations[0].sensor_1_ignored == True
+        assert controller.stations[0].sensor_1_ignored
 
         await controller.stations[0].set_sensor_1_ignored(False)
-        assert controller.stations[0].sensor_1_ignored == False
+        assert not controller.stations[0].sensor_1_ignored
 
     @pytest.mark.skipif(FIRMWARE_VERSION < 219, reason="only for version 219 and above")
     @pytest.mark.asyncio
     async def test_set_sensor_2_ignored(self, controller):
         await controller.refresh()
         await controller.stations[0].set_sensor_2_ignored(True)
-        assert controller.stations[0].sensor_2_ignored == True
+        assert controller.stations[0].sensor_2_ignored
 
         await controller.stations[0].set_sensor_2_ignored(False)
-        assert controller.stations[0].sensor_2_ignored == False
+        assert not controller.stations[0].sensor_2_ignored
 
     @pytest.mark.asyncio
     async def test_set_rain_delay_ignored(self, controller):
         await controller.refresh()
         await controller.stations[0].set_rain_delay_ignored(True)
-        assert controller.stations[0].rain_delay_ignored == True
+        assert controller.stations[0].rain_delay_ignored
 
         await controller.stations[0].set_rain_delay_ignored(False)
-        assert controller.stations[0].rain_delay_ignored == False
+        assert not controller.stations[0].rain_delay_ignored
 
     @pytest.mark.asyncio
     async def test_set_sequential_operation(self, controller):
         await controller.refresh()
         await controller.stations[0].set_sequential_operation(True)
-        assert controller.stations[0].sequential_operation == True
+        assert controller.stations[0].sequential_operation
 
         await controller.stations[0].set_sequential_operation(False)
-        assert controller.stations[0].sequential_operation == False
+        assert not controller.stations[0].sequential_operation
