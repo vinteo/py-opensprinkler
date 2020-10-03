@@ -15,7 +15,7 @@ class TestController:
     @pytest.mark.asyncio
     async def test_last_reboot_time_old(self, controller):
         await controller.refresh()
-        assert controller.last_reboot_time == None
+        assert controller.last_reboot_time is None
 
     @pytest.mark.skipif(
         FIRMWARE_VERSION <= 217, reason="only for version 218 and above"
@@ -29,7 +29,7 @@ class TestController:
     @pytest.mark.asyncio
     async def test_no_mac_address(self, controller):
         await controller.refresh()
-        assert controller.mac_address == None
+        assert controller.mac_address is None
 
     @pytest.mark.skipif(
         int(FIRMWARE_VERSION) <= 219, reason="only for version 219 (4) and above"
@@ -43,8 +43,8 @@ class TestController:
     @pytest.mark.asyncio
     async def test_no_mqtt(self, controller):
         await controller.refresh()
-        assert controller.mqtt_settings == None
-        assert controller.mqtt_enabled == None
+        assert controller.mqtt_settings is None
+        assert controller.mqtt_enabled is None
 
     @pytest.mark.skipif(
         int(FIRMWARE_VERSION) <= 219, reason="only for version 219 (4) and above"
@@ -53,15 +53,15 @@ class TestController:
     async def test_mqtt(self, controller):
         await controller.refresh()
         assert controller.mqtt_settings is not None
-        assert controller.mqtt_enabled, False
+        assert not controller.mqtt_enabled
 
     @pytest.mark.asyncio
     async def test_auto_refresh(self, controller):
         await controller.refresh()
         await controller.stations[0].run()
         await asyncio.sleep(1)
-        assert controller.stations[0].is_running == True
+        assert controller.stations[0].is_running
 
         await controller.stations[0].stop()
         await asyncio.sleep(1)
-        assert controller.stations[0].is_running == False
+        assert not controller.stations[0].is_running

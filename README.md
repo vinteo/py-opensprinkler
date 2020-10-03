@@ -1,16 +1,16 @@
+# Python module for OpenSprinker API
+
 [![PyPI version](https://badge.fury.io/py/pyopensprinkler.svg)](https://badge.fury.io/py/pyopensprinkler)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/pyopensprinkler)
-![](https://github.com/vinteo/py-opensprinkler/workflows/Linting/badge.svg)
+![Linting Status](https://github.com/vinteo/py-opensprinkler/workflows/Linting/badge.svg)
 [![Build Status](https://travis-ci.org/vinteo/py-opensprinkler.svg?branch=master)](https://travis-ci.org/vinteo/py-opensprinkler)
 [![codecov](https://codecov.io/gh/vinteo/py-opensprinkler/branch/master/graph/badge.svg)](https://codecov.io/gh/vinteo/py-opensprinkler)
-
-# Python module for OpenSprinker API.
 
 Tested against OpenSprinkler version 2.1.9.
 
 ## Installation
 
-```
+```bash
 pip install pyopensprinkler
 ```
 
@@ -83,11 +83,11 @@ Acceptable range for seconds is 0 to 64800 (18 hours)
 
 `station.toggle()`
 
-# Development
+## Development
 
-- https://openthings.freshdesk.com/support/solutions/articles/5000716363-os-api-documents
+OpenSprinkler API documentation available [here](https://openthings.freshdesk.com/support/solutions/articles/5000716363-os-api-documents).
 
-```
+```bash
 virtualenv .
 source bin/activate
 
