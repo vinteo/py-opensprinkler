@@ -65,3 +65,14 @@ class TestController:
         await controller.stations[0].stop()
         await asyncio.sleep(1)
         assert not controller.stations[0].is_running
+
+    @pytest.mark.asyncio
+    async def test_create_delete_program(self, controller):
+        await controller.refresh()
+        assert len(controller.programs) == 0
+
+        await controller.create_program("test program")
+        assert len(controller.programs) == 1
+
+        await controller.delete_program(0)
+        assert len(controller.programs) == 0

@@ -218,6 +218,7 @@ class Controller(object):
         await self._refresh_state()
         self._last_refresh_time = int(round(datetime.datetime.now().timestamp()))
 
+        self._programs = {}
         for i, _ in enumerate(self._state["programs"]["pd"]):
             if i not in self._programs:
                 self._programs[i] = Program(self, i)
@@ -422,6 +423,18 @@ class Controller(object):
 
         content = await self.request("/sp", params)
         self._md5password = md5password
+        return content["result"]
+
+    async def create_program(self, name):
+        """Create new disabled program with first station running for 1 minute on Monday midnight"""
+        params = {"pid": -1, "name": name, "v": "[0,1,0,[0,0,0,0],[60,0,0,0,0,0,0,0]]"}
+
+        content = await self.request("/cp", params)
+        return content["result"]
+
+    async def delete_program(self, index):
+        """Delete program"""
+        content = await self.request("/dp", {"pid": index})
         return content["result"]
 
     @property
