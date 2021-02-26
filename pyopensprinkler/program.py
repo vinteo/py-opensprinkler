@@ -1,6 +1,7 @@
 """Program module handling /program/ API calls."""
 
 import json
+
 from pyopensprinkler.const import (
     SCHEDULE_START_TIME_FIXED,
     SCHEDULE_START_TIME_REPEATING,
@@ -64,6 +65,9 @@ class Program(object):
             reversed([int(x) for x in list("{0:08b}".format(self._get_variable(0)))])
         )
 
+    def _bits_to_int(self, bits):
+        return int("".join(map(str, list(reversed(bits)))), 2)
+
     async def enable(self):
         """Enable operation"""
         return await self.set_enabled(True)
@@ -92,11 +96,8 @@ class Program(object):
         dlist = self._get_program_data().copy()
         bits = self._get_data_flag_bits()
 
-        if value < 0 or value > 3:
-            raise ValueError("value must be 0-3")
-
-        if value == 3:
-            raise ValueError("value must not be 3")
+        if value < 0 or value > 2:
+            raise ValueError("value must be 0-2")
 
         # none
         if value == 0:
@@ -113,25 +114,13 @@ class Program(object):
             bits[2] = 0
             bits[3] = 1
 
-        # undefined
-        if value == 3:
-            bits[2] = 1
-            bits[3] = 1
-
-        bits = list(reversed(bits))
-        bits = "".join(map(str, bits))
-        bits = int(bits, 2)
-
-        dlist[0] = bits
+        dlist[0] = self._bits_to_int(bits)
 
         return await self._set_variable("v", dlist)
 
     async def set_program_schedule_type(self, value):
         dlist = self._get_program_data().copy()
         bits = self._get_data_flag_bits()
-
-        if value < 0 or value > 3:
-            raise ValueError("value must be 0-3")
 
         if value != 0 and value != 3:
             raise ValueError("value must be 0 or 3")
@@ -141,26 +130,12 @@ class Program(object):
             bits[4] = 0
             bits[5] = 0
 
-        # undefined
-        if value == 1:
-            bits[4] = 1
-            bits[5] = 0
-
-        # undefined
-        if value == 2:
-            bits[4] = 0
-            bits[5] = 1
-
         # interval-day
         if value == 3:
             bits[4] = 1
             bits[5] = 1
 
-        bits = list(reversed(bits))
-        bits = "".join(map(str, bits))
-        bits = int(bits, 2)
-
-        dlist[0] = bits
+        dlist[0] = self._bits_to_int(bits)
 
         return await self._set_variable("v", dlist)
 
@@ -179,11 +154,7 @@ class Program(object):
         if value == 1:
             bits[6] = 1
 
-        bits = list(reversed(bits))
-        bits = "".join(map(str, bits))
-        bits = int(bits, 2)
-
-        dlist[0] = bits
+        dlist[0] = self._bits_to_int(bits)
 
         return await self._set_variable("v", dlist)
 

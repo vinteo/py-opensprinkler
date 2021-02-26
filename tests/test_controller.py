@@ -1,6 +1,6 @@
 import asyncio
-import pytest
 
+import pytest
 from const import FIRMWARE_VERSION
 
 

@@ -1,11 +1,10 @@
 import pytest
-
+from const import FIRMWARE_VERSION
 from pyopensprinkler.const import (
     STATION_STATUS_IDLE,
     STATION_STATUS_MANUAL,
     STATION_TYPE_STANDARD,
 )
-from const import FIRMWARE_VERSION
 
 
 class TestStation:
