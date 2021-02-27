@@ -1,6 +1,7 @@
 """Station module handling /station/ API calls."""
 
 import math
+
 from pyopensprinkler.const import (
     STATION_STATUS_IDLE,
     STATION_STATUS_MANUAL,

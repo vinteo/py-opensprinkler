@@ -10,39 +10,38 @@ import urllib
 
 import aiohttp
 from backoff import expo, on_exception
-
-from pyopensprinkler.program import Program
-from pyopensprinkler.station import Station
 from pyopensprinkler.const import (
     HARDWARE_TYPE_AC,
     HARDWARE_TYPE_DC,
     HARDWARE_TYPE_LATCHING,
-    HARDWARE_VERSION_OSPI,
-    HARDWARE_VERSION_OSBO,
-    HARDWARE_VERSION_LINUX,
     HARDWARE_VERSION_DEMO,
-    REBOOT_CAUSE_FACTORY_RESET,
-    REBOOT_CAUSE_RESET_BUTTON,
+    HARDWARE_VERSION_LINUX,
+    HARDWARE_VERSION_OSBO,
+    HARDWARE_VERSION_OSPI,
     REBOOT_CAUSE_AP_RESET,
     REBOOT_CAUSE_API_REQUEST,
     REBOOT_CAUSE_CLIENT_MODE,
+    REBOOT_CAUSE_FACTORY_RESET,
     REBOOT_CAUSE_FIRMWARE_UPDATE,
-    REBOOT_CAUSE_WEATHER_FAILURE,
     REBOOT_CAUSE_NETWORK_FAILURE,
     REBOOT_CAUSE_NTP_SYNC,
     REBOOT_CAUSE_POWER_ON,
+    REBOOT_CAUSE_RESET_BUTTON,
+    REBOOT_CAUSE_WEATHER_FAILURE,
     SENSOR_OPTION_NORMALLY_CLOSED,
     SENSOR_OPTION_NORMALLY_OPEN,
-    SENSOR_TYPE_NOT_CONNECTED,
-    SENSOR_TYPE_RAIN,
     SENSOR_TYPE_FLOW,
-    SENSOR_TYPE_SOIL,
+    SENSOR_TYPE_NOT_CONNECTED,
     SENSOR_TYPE_PROGRAM_SWITCH,
-    WEATHER_ERROR_NOT_RECEIVED,
+    SENSOR_TYPE_RAIN,
+    SENSOR_TYPE_SOIL,
     WEATHER_ERROR_CANT_CONNECT,
-    WEATHER_ERROR_TIME_OUT,
     WEATHER_ERROR_EMPTY_RESPONSE,
+    WEATHER_ERROR_NOT_RECEIVED,
+    WEATHER_ERROR_TIME_OUT,
 )
+from pyopensprinkler.program import Program
+from pyopensprinkler.station import Station
 
 
 def synchronized(lock):
@@ -219,6 +218,7 @@ class Controller(object):
         await self._refresh_state()
         self._last_refresh_time = int(round(datetime.datetime.now().timestamp()))
 
+        self._programs = {}
         for i, _ in enumerate(self._state["programs"]["pd"]):
             if i not in self._programs:
                 self._programs[i] = Program(self, i)
@@ -423,6 +423,18 @@ class Controller(object):
 
         content = await self.request("/sp", params)
         self._md5password = md5password
+        return content["result"]
+
+    async def create_program(self, name):
+        """Create new disabled program with first station running for 1 minute on Monday midnight"""
+        params = {"pid": -1, "name": name, "v": "[0,1,0,[0,0,0,0],[60,0,0,0,0,0,0,0]]"}
+
+        content = await self.request("/cp", params)
+        return content["result"]
+
+    async def delete_program(self, index):
+        """Delete program"""
+        content = await self.request("/dp", {"pid": index})
         return content["result"]
 
     @property

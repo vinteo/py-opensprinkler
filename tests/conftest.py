@@ -1,7 +1,6 @@
 import pytest
-
+from const import PASSWORD, URL
 from pyopensprinkler import Controller as OpenSprinkler
-from const import URL, PASSWORD
 
 
 @pytest.fixture

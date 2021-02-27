@@ -18,7 +18,7 @@ setup(
     author="Vincent Teo, Travis Glenn Hansen",
     author_email="vinteo@gmail.com, travisghansen@yahoo.com",
     packages=["pyopensprinkler"],
-    install_requires=["aiohttp==3.6.2", "backoff==1.10.0"],
+    install_requires=["aiohttp==3.7.4", "backoff==1.10.0"],
     url=github_url,
     download_url=download_url,
     project_urls=project_urls,

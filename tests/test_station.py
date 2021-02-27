@@ -1,11 +1,10 @@
 import pytest
-
+from const import FIRMWARE_VERSION
 from pyopensprinkler.const import (
     STATION_STATUS_IDLE,
     STATION_STATUS_MANUAL,
     STATION_TYPE_STANDARD,
 )
-from const import FIRMWARE_VERSION
 
 
 class TestStation:
@@ -55,6 +54,7 @@ class TestStation:
     @pytest.mark.asyncio
     async def test_toggle(self, controller):
         await controller.refresh()
+        await controller.stations[0].stop()
         assert not controller.stations[0].is_running
         assert controller.stations[0].start_time == 0
         assert controller.stations[0].end_time == 0
