@@ -45,7 +45,7 @@ from pyopensprinkler.station import Station
 
 
 def synchronized(lock):
-    """ Synchronization decorator """
+    """Synchronization decorator"""
 
     def wrap(f):
         @functools.wraps(f)
