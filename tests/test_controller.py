@@ -76,3 +76,37 @@ class TestController:
 
         await controller.delete_program(0)
         assert len(controller.programs) == 0
+
+    @pytest.mark.asyncio
+    async def test_rain_delay(self, controller):
+        await controller.refresh()
+
+        # Disable rain delay
+        await controller.disable_rain_delay()
+        assert not controller.rain_delay_active
+        assert controller.rain_delay_stop_time == 0
+
+        # Enable rain delay and verify state and stop time
+        DELAY_HOURS = 2
+        await controller.set_rain_delay(DELAY_HOURS)
+        assert controller.rain_delay_active
+        # Check timezone-corrected stop time within 30-second margin of
+        # error for slow test execution
+        assert (
+            abs(
+                controller.rain_delay_stop_time
+                - (controller.device_time + DELAY_HOURS * 60 * 60)
+            )
+            < 30
+        )
+
+        # Setting 0 hour delay clears the rain delay
+        await controller.set_rain_delay(0)
+        assert not controller.rain_delay_active
+        assert controller.rain_delay_stop_time == 0
+
+        # Valid range which can be converted for OpenSprinkler is 0 to 32767.
+        with pytest.raises(ValueError):
+            await controller.set_rain_delay(-1)
+        with pytest.raises(ValueError):
+            await controller.set_rain_delay(32768)
