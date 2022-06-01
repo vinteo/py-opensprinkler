@@ -10,6 +10,7 @@ async def program(controller):
 
 
 class TestProgram:
+    @pytest.mark.asyncio
     async def test_index(self, controller, program):
         assert controller.programs[0].index == 0
         assert program.index == 0

@@ -683,7 +683,7 @@ class Controller(object):
     @property
     def rain_delay_stop_time(self):
         """Retrieve rain delay stop time"""
-        return self._get_variable("rdst")
+        return self._timestamp_to_utc(self._get_variable("rdst"))
 
     @property
     def rain_sensor_active(self):
