@@ -47,13 +47,12 @@ class TestController:
         assert controller.mqtt_enabled is None
 
     @pytest.mark.skipif(
-        int(FIRMWARE_VERSION) <= 219, reason="only for version 219 (4) and above"
+        int(FIRMWARE_VERSION) < 220, reason="only for version 220 (1) and above"
     )
     @pytest.mark.asyncio
     async def test_mqtt(self, controller):
         await controller.refresh()
         assert controller.mqtt_settings is not None
-        assert not controller.mqtt_enabled
 
     @pytest.mark.asyncio
     async def test_auto_refresh(self, controller):

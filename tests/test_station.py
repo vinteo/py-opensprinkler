@@ -137,6 +137,7 @@ class TestStation:
         await controller.stations[0].set_rain_delay_ignored(False)
         assert not controller.stations[0].rain_delay_ignored
 
+    @pytest.mark.skipif(FIRMWARE_VERSION > 219, reason="only for version 219 and below")
     @pytest.mark.asyncio
     async def test_set_sequential_operation(self, controller):
         await controller.refresh()
