@@ -68,6 +68,15 @@ jobs:
         - sleep 2
         - curl 'http://localhost:4219/sp?pw=opendoor&npw=a6d82bced638de3def1e9bbb4983225c&cpw=a6d82bced638de3def1e9bbb4983225c'
         - CONTROLLER_URL=http://localhost:4219 CONTROLLER_FIRMWARE=219.4 pytest --cov=pyopensprinkler --cov-report=xml
+    - stage: Firmware Tests
+      name: Test Against Firmware 220 (1)
+      script:
+        - docker pull vinteo81/opensprinkler-firmware:220_1
+        - docker run -d -p 127.0.0.1:8220:8080 vinteo81/opensprinkler-firmware:220_1
+        - docker ps -a
+        - sleep 2
+        - curl 'http://localhost:8220/sp?pw=opendoor&npw=a6d82bced638de3def1e9bbb4983225c&cpw=a6d82bced638de3def1e9bbb4983225c'
+        - CONTROLLER_URL=http://localhost:8220 CONTROLLER_FIRMWARE=220.1 pytest --cov=pyopensprinkler --cov-report=xml
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
