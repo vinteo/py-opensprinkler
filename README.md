@@ -3,7 +3,7 @@
 [![PyPI version](https://badge.fury.io/py/pyopensprinkler.svg)](https://badge.fury.io/py/pyopensprinkler)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/pyopensprinkler)
 ![Linting Status](https://github.com/vinteo/py-opensprinkler/workflows/Linting/badge.svg)
-[![Build Status](https://travis-ci.org/vinteo/py-opensprinkler.svg?branch=master)](https://travis-ci.org/vinteo/py-opensprinkler)
+[![Build Status](https://app.travis-ci.com/vinteo/py-opensprinkler.svg?branch=master)](https://travis-ci.org/vinteo/py-opensprinkler)
 [![codecov](https://codecov.io/gh/vinteo/py-opensprinkler/branch/master/graph/badge.svg)](https://codecov.io/gh/vinteo/py-opensprinkler)
 
 Tested against OpenSprinkler version 2.1.9.
