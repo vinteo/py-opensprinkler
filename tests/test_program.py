@@ -57,3 +57,28 @@ class TestProgram:
         await program.set_start_time_type(0)
         assert program.start_time_type == 0
         assert program.start_time_type_name == "repeating"
+
+    @pytest.mark.asyncio
+    async def test_set_name(self, controller, program):
+        await program.set_name("Test")
+        assert program.name == "Test"
+
+    @pytest.mark.asyncio
+    async def test_set_program_start_time(self, controller, program):
+        await program.set_program_start_time(0, 360)
+        assert program.program_start_times[0] == 360
+
+    @pytest.mark.asyncio
+    async def test_set_station_duration(self, controller, program):
+        await program.set_station_duration(0, 1800)
+        assert program.station_durations[0] == 1800
+
+    @pytest.mark.asyncio
+    async def test_set_days0(self, controller, program):
+        await program.set_days0(1)
+        assert program.days0 == 1
+
+    @pytest.mark.asyncio
+    async def test_set_days1(self, controller, program):
+        await program.set_days1(3)
+        assert program.days1 == 3
