@@ -34,24 +34,7 @@ class Program(object):
             params = {}
         params["pid"] = self._index
 
-        # hacky garbage to make setting the name work
-        # NOTE: setting en and name in the same request results in the name parameter being ignored
-        v = ""
-        if "v" not in params:
-            dlist = self._get_program_data().copy()
-            if "name" in params:
-                dlist.pop(5)
-            v = json.dumps(dlist).replace(" ", "")
-
-        if "v" in params:
-            name = params["v"].pop(5)
-            if "name" not in params:
-                params["name"] = name
-            v = json.dumps(params.pop("v", None)).replace(" ", "")
-
-        v = v.strip()
-
-        content = await self._controller.request("/cp", params, f"v={v}")
+        content = await self._controller.request("/cp", params)
         return content["result"]
 
     async def _manual_run(self):
@@ -67,6 +50,13 @@ class Program(object):
 
     def _bits_to_int(self, bits):
         return int("".join(map(str, list(reversed(bits)))), 2)
+
+    def _format_program_data(self, dlist):
+        """Move program name from 'v' to 'name' parameter and remove spaces."""
+        name = dlist.pop(5)
+        v = json.dumps(dlist).replace(" ", "")
+        params = {"v": v, "name": name}
+        return params
 
     async def enable(self):
         """Enable operation"""
@@ -87,7 +77,10 @@ class Program(object):
         return await self._manual_run()
 
     async def set_name(self, name):
-        return await self._set_variable("name", name)
+        dlist = self._get_program_data().copy()
+        dlist[5] = name
+        params = self._format_program_data(dlist)
+        return await self._set_variables(params)
 
     async def set_use_weather_adjustments(self, value):
         return await self._set_variable("uwt", int(value))
@@ -115,8 +108,8 @@ class Program(object):
             bits[3] = 1
 
         dlist[0] = self._bits_to_int(bits)
-
-        return await self._set_variable("v", dlist)
+        params = self._format_program_data(dlist)
+        return await self._set_variables(params)
 
     async def set_program_schedule_type(self, value):
         dlist = self._get_program_data().copy()
@@ -136,8 +129,8 @@ class Program(object):
             bits[5] = 1
 
         dlist[0] = self._bits_to_int(bits)
-
-        return await self._set_variable("v", dlist)
+        params = self._format_program_data(dlist)
+        return await self._set_variables(params)
 
     async def set_start_time_type(self, value):
         dlist = self._get_program_data().copy()
@@ -155,18 +148,46 @@ class Program(object):
             bits[6] = 1
 
         dlist[0] = self._bits_to_int(bits)
+        params = self._format_program_data(dlist)
+        return await self._set_variables(params)
 
-        return await self._set_variable("v", dlist)
+    async def set_program_start_time(self, start_index, start_time):
+        dlist = self._get_program_data().copy()
+        dlist[3][start_index] = start_time
+        params = self._format_program_data(dlist)
+        return await self._set_variables(params)
+
+    async def set_program_start_times(self, start_times):
+        dlist = self._get_program_data().copy()
+        dlist[3] = start_times
+        params = self._format_program_data(dlist)
+        return await self._set_variables(params)
 
     async def set_station_duration(self, station_index, duration):
         dlist = self._get_program_data().copy()
         dlist[4][station_index] = duration
-        return await self._set_variable("v", dlist)
+        params = self._format_program_data(dlist)
+        return await self._set_variables(params)
 
     async def set_station_durations(self, durations):
         dlist = self._get_program_data().copy()
         dlist[4] = durations
-        return await self._set_variable("v", dlist)
+        params = self._format_program_data(dlist)
+        return await self._set_variables(params)
+
+    async def set_days0(self, value):
+        """Set days0 (weekday bits in Weekday mode, starting in days in Interval mode)"""
+        dlist = self._get_program_data().copy()
+        dlist[1] = value
+        params = self._format_program_data(dlist)
+        return await self._set_variables(params)
+
+    async def set_days1(self, value):
+        """Retrieve days1 (not used in Weekday mode, interval days in Interval mode)"""
+        dlist = self._get_program_data().copy()
+        dlist[2] = value
+        params = self._format_program_data(dlist)
+        return await self._set_variables(params)
 
     @property
     def name(self):
@@ -270,3 +291,23 @@ class Program(object):
 
         if value == 1:
             return SCHEDULE_START_TIME_FIXED
+
+    @property
+    def program_start_times(self):
+        """Retrieve station start times"""
+        return self._get_variable(3)
+
+    @property
+    def station_durations(self):
+        """Retrieve station durations"""
+        return self._get_variable(4)
+
+    @property
+    def days0(self):
+        """Retrieve days0 (weekday bits in Weekday mode, starting in days in Interval mode)"""
+        return self._get_variable(1)
+
+    @property
+    def days1(self):
+        """Retrieve days1 (not used in Weekday mode, interval days in Interval mode)"""
+        return self._get_variable(2)
