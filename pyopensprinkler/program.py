@@ -4,9 +4,17 @@ import json
 
 from pyopensprinkler.const import (
     SCHEDULE_START_TIME_FIXED,
+    SCHEDULE_START_TIME_OFFSET_DISABLED,
+    SCHEDULE_START_TIME_OFFSET_MIDNIGHT,
+    SCHEDULE_START_TIME_OFFSET_SUNRISE,
+    SCHEDULE_START_TIME_OFFSET_SUNSET,
     SCHEDULE_START_TIME_REPEATING,
     SCHEDULE_TYPE_INTERVAL_DAY,
     SCHEDULE_TYPE_WEEKDAY,
+    START_TIME_MINUTES_MASK,
+    START_TIME_SIGN_BIT,
+    START_TIME_SUNRISE_BIT,
+    START_TIME_SUNSET_BIT,
 )
 
 
@@ -57,6 +65,70 @@ class Program(object):
         v = json.dumps(dlist).replace(" ", "")
         params = {"v": v, "name": name}
         return params
+
+    def _is_set(self, x, n):
+        """Test for nth bit set."""
+        return x & 1 << n != 0
+
+    def _get_offset_minutes(self, start_times, start_index):
+        """Extract offset minutes from encoded start time"""
+        sign = -1 if self._is_set(start_times[start_index], START_TIME_SIGN_BIT) else 1
+        use_sunset = bool(self._is_set(start_times[start_index], START_TIME_SUNSET_BIT))
+        use_sunrise = bool(
+            self._is_set(start_times[start_index], START_TIME_SUNRISE_BIT)
+        )
+
+        if start_times[start_index] == -1:  # disabled
+            return 0
+        # Only start0 has offset if repeating type
+        elif start_index > 0 and self.start_time_type == 0:
+            return 0
+        elif use_sunset:
+            return (start_times[start_index] & START_TIME_MINUTES_MASK) * sign
+        elif use_sunrise:
+            return (start_times[start_index] & START_TIME_MINUTES_MASK) * sign
+        else:
+            return start_times[start_index]
+
+    def _encode_offset_minutes(self, offset_type, start_time_offset):
+        """Encode start time with offset minutes, sign bit, and sunset/sunrise bit"""
+        new_sign_bit = 1 if start_time_offset < 0 else 0
+
+        if offset_type == SCHEDULE_START_TIME_OFFSET_DISABLED:
+            return -1
+        elif offset_type == SCHEDULE_START_TIME_OFFSET_SUNSET:
+            return (
+                abs(int(start_time_offset))
+                | (new_sign_bit << START_TIME_SIGN_BIT)
+                | (1 << START_TIME_SUNSET_BIT)
+            )
+        elif offset_type == SCHEDULE_START_TIME_OFFSET_SUNRISE:
+            return (
+                abs(int(start_time_offset))
+                | (new_sign_bit << START_TIME_SIGN_BIT)
+                | (1 << START_TIME_SUNRISE_BIT)
+            )
+        else:
+            return start_time_offset
+
+    def _get_offset_type(self, start_times, start_index):
+        """Get start time offset type ('disabled', 'midnight', 'sunset', or 'sunrise')"""
+        use_sunset = bool(self._is_set(start_times[start_index], START_TIME_SUNSET_BIT))
+        use_sunrise = bool(
+            self._is_set(start_times[start_index], START_TIME_SUNRISE_BIT)
+        )
+
+        if start_times[start_index] == -1:
+            return SCHEDULE_START_TIME_OFFSET_DISABLED
+        # Only start0 has offset if repeating type
+        elif start_index > 0 and self.start_time_type == 0:
+            return None
+        elif use_sunset:
+            return SCHEDULE_START_TIME_OFFSET_SUNSET
+        elif use_sunrise:
+            return SCHEDULE_START_TIME_OFFSET_SUNRISE
+        else:
+            return SCHEDULE_START_TIME_OFFSET_MIDNIGHT
 
     async def enable(self):
         """Enable operation"""
@@ -152,14 +224,66 @@ class Program(object):
         return await self._set_variables(params)
 
     async def set_program_start_time(self, start_index, start_time):
+        """Set program start time with encoded value for start0, 1, 2, or 3"""
+        if not 0 <= start_index <= 3:
+            raise IndexError("start_index must be between 0 and 3")
         dlist = self._get_program_data().copy()
         dlist[3][start_index] = start_time
         params = self._format_program_data(dlist)
         return await self._set_variables(params)
 
     async def set_program_start_times(self, start_times):
+        """Set program start times with encoded list for start0-start3"""
         dlist = self._get_program_data().copy()
         dlist[3] = start_times
+        params = self._format_program_data(dlist)
+        return await self._set_variables(params)
+
+    async def set_program_start_time_offset(self, start_index, start_time_offset):
+        """Set program start time offset in minutes without chaning current offset type"""
+        if not 0 <= start_index <= 3:
+            raise IndexError("start_index must be between 0 and 3")
+
+        # Only start0 has offset if repeating type
+        if start_index > 0 and self.start_time_type == 0:
+            raise RuntimeError(
+                f"cannot update start{start_index} with minutes when start time type is 'repeating'"
+            )
+
+        dlist = self._get_program_data().copy()
+        current_offset_type = self._get_offset_type(dlist[3], start_index)
+
+        # Assume offset of midnight if attempting to set new start time
+        if current_offset_type == "disabled":
+            current_offset_type = "midnight"
+
+        new_start = self._encode_offset_minutes(current_offset_type, start_time_offset)
+        dlist[3][start_index] = new_start
+        params = self._format_program_data(dlist)
+        return await self._set_variables(params)
+
+    async def set_program_start_time_offset_type(
+        self, start_index, start_time_offset_type
+    ):
+        """Set program start time offset type ('disabled', 'midnight', 'sunset', or 'sunrise'). Resets minutes to 0."""
+        if not 0 <= start_index <= 3:
+            raise IndexError("start_index must be between 0 and 3")
+
+        # Only start0 has offset if repeating type
+        if start_index > 0 and self.start_time_type == 0:
+            raise RuntimeError(
+                f"cannot update start{start_index} offset type when start time type is 'repeating'"
+            )
+
+        valid_options = ["disabled", "midnight", "sunset", "sunrise"]
+        if start_time_offset_type not in valid_options:
+            raise ValueError(
+                "start_time_offset_type must be one of {}".format(valid_options)
+            )
+
+        dlist = self._get_program_data().copy()
+        new_start = self._encode_offset_minutes(start_time_offset_type, 0)
+        dlist[3][start_index] = new_start
         params = self._format_program_data(dlist)
         return await self._set_variables(params)
 
@@ -292,10 +416,50 @@ class Program(object):
         if value == 1:
             return SCHEDULE_START_TIME_FIXED
 
+    def get_program_start_time(self, start_index):
+        """Retrieve program start time in encoded value"""
+        return self._get_variable(3)[start_index]
+
     @property
     def program_start_times(self):
-        """Retrieve station start times"""
+        """Retrieve program start times in list of encoded values"""
         return self._get_variable(3)
+
+    def get_program_start_time_offset(self, start_index):
+        """Retrieve program start time offset in minutes"""
+        if not 0 <= start_index <= 3:
+            raise IndexError("start_index must be between 0 and 3")
+
+        start_times = self._get_variable(3)
+        return self._get_offset_minutes(start_times, start_index)
+
+    @property
+    def program_start_time_offsets(self):
+        """Retrieve program start time offsets in minutes"""
+        return [
+            self.get_program_start_time_offset(0),
+            self.get_program_start_time_offset(1),
+            self.get_program_start_time_offset(2),
+            self.get_program_start_time_offset(3),
+        ]
+
+    def get_program_start_time_offset_type(self, start_index):
+        """Retrieve program start time offset type ('midnight', 'sunset', or 'sunrise')"""
+        if not 0 <= start_index <= 3:
+            raise IndexError("start_index must be between 0 and 3")
+
+        start_times = self._get_variable(3)
+        return self._get_offset_type(start_times, start_index)
+
+    @property
+    def program_start_time_offset_types(self):
+        """Retrieve list of program start time offset types ('midnight', 'sunset', or 'sunrise')"""
+        return [
+            self.get_program_start_time_offset_type(0),
+            self.get_program_start_time_offset_type(1),
+            self.get_program_start_time_offset_type(2),
+            self.get_program_start_time_offset_type(3),
+        ]
 
     @property
     def station_durations(self):
