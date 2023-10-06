@@ -5,6 +5,7 @@
 ![Linting Status](https://github.com/vinteo/py-opensprinkler/workflows/Linting/badge.svg)
 [![Build Status](https://app.travis-ci.com/vinteo/py-opensprinkler.svg?branch=master)](https://travis-ci.org/vinteo/py-opensprinkler)
 [![CodeQL](https://github.com/vinteo/py-opensprinkler/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/vinteo/py-opensprinkler/actions/workflows/codeql-analysis.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=vinteo_py-opensprinkler&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=vinteo_py-opensprinkler)
 [![codecov](https://codecov.io/gh/vinteo/py-opensprinkler/branch/master/graph/badge.svg)](https://codecov.io/gh/vinteo/py-opensprinkler)
 
 Tested against OpenSprinkler version 2.1.9.
