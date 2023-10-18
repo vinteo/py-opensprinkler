@@ -69,6 +69,27 @@ class TestProgram:
         assert program.program_start_times[0] == 360
 
     @pytest.mark.asyncio
+    async def test_set_program_start_time_3(self, controller, program):
+        await program.set_program_start_time(3, 120)
+        assert program.program_start_times[3] == 120
+
+    @pytest.mark.asyncio
+    async def test_set_program_start_time_offset_type(self, controller, program):
+        await program.set_program_start_time_offset_type(0, "sunset")
+        await program.set_program_start_time_offset(0, -60)
+        assert program.get_program_start_time_offset_type(0) == "sunset"
+        assert program.get_program_start_time_offset(0) == -60
+
+    @pytest.mark.asyncio
+    async def test_set_program_start_time_offset(self, controller, program):
+        await program.set_start_time_type(1)
+        await program.set_program_start_time_offset_type(1, "midnight")
+        await program.set_program_start_time_offset(1, 30)
+        assert program.start_time_type == 1
+        assert program.get_program_start_time_offset_type(1) == "midnight"
+        assert program.get_program_start_time_offset(1) == 30
+
+    @pytest.mark.asyncio
     async def test_set_station_duration(self, controller, program):
         await program.set_station_duration(0, 1800)
         assert program.station_durations[0] == 1800
