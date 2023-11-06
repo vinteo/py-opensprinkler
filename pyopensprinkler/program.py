@@ -219,7 +219,12 @@ class Program(object):
         if value == 1:
             bits[6] = 1
 
-        dlist[0] = self._bits_to_int(bits)
+        # If changing type, data in start1-3 becomes meaningless, so zero out.
+        if dlist[0] != self._bits_to_int(bits):
+            dlist[3][1] = 0
+            dlist[3][2] = 0
+            dlist[3][3] = 0
+            dlist[0] = self._bits_to_int(bits)
         params = self._format_program_data(dlist)
         return await self._set_variables(params)
 
@@ -284,6 +289,30 @@ class Program(object):
         dlist = self._get_program_data().copy()
         new_start = self._encode_offset_minutes(start_time_offset_type, 0)
         dlist[3][start_index] = new_start
+        params = self._format_program_data(dlist)
+        return await self._set_variables(params)
+
+    async def set_program_start_repeat_count(self, repeat_count):
+        """Set program start repeat count"""
+        if self.start_time_type == 1:
+            raise RuntimeError(
+                "cannot update repeat count when start time type is 'fixed'"
+            )
+
+        dlist = self._get_program_data().copy()
+        dlist[3][1] = repeat_count
+        params = self._format_program_data(dlist)
+        return await self._set_variables(params)
+
+    async def set_program_start_repeat_interval(self, repeat_minutes):
+        """Set program start repeat interval in minutes"""
+        if self.start_time_type == 1:
+            raise RuntimeError(
+                "cannot update repeat count when start time type is 'fixed'"
+            )
+
+        dlist = self._get_program_data().copy()
+        dlist[3][2] = repeat_minutes
         params = self._format_program_data(dlist)
         return await self._set_variables(params)
 
@@ -460,6 +489,16 @@ class Program(object):
             self.get_program_start_time_offset_type(2),
             self.get_program_start_time_offset_type(3),
         ]
+
+    @property
+    def program_start_repeat_count(self):
+        """Retrieve program start repeat count"""
+        return self._get_variable(3)[1]
+
+    @property
+    def program_start_repeat_interval(self):
+        """Retrieve program start repeat interval in minutes"""
+        return self._get_variable(3)[2]
 
     @property
     def station_durations(self):
