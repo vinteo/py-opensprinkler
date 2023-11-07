@@ -90,6 +90,18 @@ class TestProgram:
         assert program.get_program_start_time_offset(1) == 30
 
     @pytest.mark.asyncio
+    async def test_set_program_start_repeat_count(self, controller, program):
+        await program.set_start_time_type(0)
+        await program.set_program_start_repeat_count(2)
+        assert program.program_start_repeat_count == 2
+
+    @pytest.mark.asyncio
+    async def test_set_program_start_repeat_interval(self, controller, program):
+        await program.set_start_time_type(0)
+        await program.set_program_start_repeat_interval(60)
+        assert program.program_start_repeat_interval == 60
+
+    @pytest.mark.asyncio
     async def test_set_station_duration(self, controller, program):
         await program.set_station_duration(0, 1800)
         assert program.station_durations[0] == 1800
