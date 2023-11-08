@@ -219,11 +219,11 @@ class Program(object):
         if value == 1:
             bits[6] = 1
 
-        # If changing type, data in start1-3 becomes meaningless, so zero out.
+        # If changing type, data in start1-3 becomes meaningless, so set to default.
         if dlist[0] != self._bits_to_int(bits):
-            dlist[3][1] = 0
-            dlist[3][2] = 0
-            dlist[3][3] = 0
+            dlist[3][1] = 0 if value == 0 else -1
+            dlist[3][2] = 0 if value == 0 else -1
+            dlist[3][3] = 0 if value == 0 else -1
             dlist[0] = self._bits_to_int(bits)
         params = self._format_program_data(dlist)
         return await self._set_variables(params)
