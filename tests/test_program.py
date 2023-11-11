@@ -115,3 +115,31 @@ class TestProgram:
     async def test_set_days1(self, controller, program):
         await program.set_days1(3)
         assert program.days1 == 3
+
+    @pytest.mark.asyncio
+    async def test_set_weekday_enabled(self, controller, program):
+        await program.set_program_schedule_type(0)
+        await program.set_weekday_enabled("Monday", True)
+        assert program.program_schedule_type_name == "weekday"
+        assert program.get_weekday_enabled("Monday") is True
+
+        await program.set_weekday_enabled("Monday", False)
+        assert program.get_weekday_enabled("Monday") is False
+
+        await program.set_program_schedule_type(3)
+        assert program.program_schedule_type_name == "interval_day"
+        assert program.interval_days == 1
+        assert program.starting_in_days == 0
+
+    @pytest.mark.asyncio
+    async def test_set_interval_days(self, controller, program):
+        await program.set_program_schedule_type(3)
+        await program.set_interval_days(3)
+        await program.set_starting_in_days(2)
+        assert program.program_schedule_type_name == "interval_day"
+        assert program.interval_days == 3
+        assert program.starting_in_days == 2
+
+        await program.set_program_schedule_type(0)
+        assert program.days1 == 0
+        assert program.days0 == 0

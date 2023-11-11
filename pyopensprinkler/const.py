@@ -56,3 +56,13 @@ START_TIME_SIGN_BIT = 12
 START_TIME_SUNSET_BIT = 13
 START_TIME_SUNRISE_BIT = 14
 START_TIME_MINUTES_MASK = 0x7FF
+
+WEEKDAYS = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+]
