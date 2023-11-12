@@ -15,6 +15,7 @@ from pyopensprinkler.const import (
     START_TIME_SIGN_BIT,
     START_TIME_SUNRISE_BIT,
     START_TIME_SUNSET_BIT,
+    WEEKDAYS,
 )
 
 
@@ -69,6 +70,13 @@ class Program(object):
     def _is_set(self, x, n):
         """Test for nth bit set."""
         return x & 1 << n != 0
+
+    def _bit_set(self, x, n, state=True):
+        """Set or clear nth bit."""
+        if state:
+            return x | 1 << n
+        else:
+            return x & ~(1 << n)
 
     def _get_offset_minutes(self, start_times, start_index):
         """Extract offset minutes from encoded start time"""
@@ -162,7 +170,7 @@ class Program(object):
         bits = self._get_data_flag_bits()
 
         if value < 0 or value > 2:
-            raise ValueError("value must be 0-2")
+            raise ValueError("Value must be 0-2")
 
         # none
         if value == 0:
@@ -188,7 +196,7 @@ class Program(object):
         bits = self._get_data_flag_bits()
 
         if value != 0 and value != 3:
-            raise ValueError("value must be 0 or 3")
+            raise ValueError("Value must be 0 or 3")
 
         # weekday
         if value == 0:
@@ -200,7 +208,11 @@ class Program(object):
             bits[4] = 1
             bits[5] = 1
 
-        dlist[0] = self._bits_to_int(bits)
+        # If changing type, data in days0-1 becomes meaningless, so set to default.
+        if dlist[0] != self._bits_to_int(bits):
+            dlist[1] = 0
+            dlist[2] = 0 if value == 0 else 1  # Interval day must be >= 1
+            dlist[0] = self._bits_to_int(bits)
         params = self._format_program_data(dlist)
         return await self._set_variables(params)
 
@@ -209,7 +221,7 @@ class Program(object):
         bits = self._get_data_flag_bits()
 
         if value < 0 or value > 1:
-            raise ValueError("value must be 0 or 1")
+            raise ValueError("Value must be 0 or 1")
 
         # repeating
         if value == 0:
@@ -252,7 +264,7 @@ class Program(object):
         # Only start0 has offset if repeating type
         if start_index > 0 and self.start_time_type == 0:
             raise RuntimeError(
-                f"cannot update start{start_index} with minutes when start time type is 'repeating'"
+                f"Cannot update start{start_index} with minutes when start time type is 'repeating'"
             )
 
         dlist = self._get_program_data().copy()
@@ -277,7 +289,7 @@ class Program(object):
         # Only start0 has offset if repeating type
         if start_index > 0 and self.start_time_type == 0:
             raise RuntimeError(
-                f"cannot update start{start_index} offset type when start time type is 'repeating'"
+                f"Cannot update start{start_index} offset type when start time type is 'repeating'"
             )
 
         valid_options = ["disabled", "midnight", "sunset", "sunrise"]
@@ -296,7 +308,7 @@ class Program(object):
         """Set program start repeat count"""
         if self.start_time_type == 1:
             raise RuntimeError(
-                "cannot update repeat count when start time type is 'fixed'"
+                "Cannot update repeat count when start time type is 'fixed'"
             )
 
         dlist = self._get_program_data().copy()
@@ -308,11 +320,23 @@ class Program(object):
         """Set program start repeat interval in minutes"""
         if self.start_time_type == 1:
             raise RuntimeError(
-                "cannot update repeat count when start time type is 'fixed'"
+                "Cannot update repeat count when start time type is 'fixed'"
             )
 
         dlist = self._get_program_data().copy()
         dlist[3][2] = repeat_minutes
+        params = self._format_program_data(dlist)
+        return await self._set_variables(params)
+
+    async def set_weekday_enabled(self, weekday, enabled):
+        """Set program weekday enabled state (weekday = 'Monday', 'Tuesday', etc.)"""
+        if self.program_schedule_type == 3:
+            raise RuntimeError(
+                "Cannot update Weekly schedule when schedule type is 'Interval'"
+            )
+
+        dlist = self._get_program_data().copy()
+        dlist[1] = self._bit_set(dlist[1], WEEKDAYS.index(weekday), enabled)
         params = self._format_program_data(dlist)
         return await self._set_variables(params)
 
@@ -336,7 +360,31 @@ class Program(object):
         return await self._set_variables(params)
 
     async def set_days1(self, value):
-        """Retrieve days1 (not used in Weekday mode, interval days in Interval mode)"""
+        """Set days1 (not used in Weekday mode, interval days in Interval mode)"""
+        dlist = self._get_program_data().copy()
+        dlist[2] = value
+        params = self._format_program_data(dlist)
+        return await self._set_variables(params)
+
+    async def set_starting_in_days(self, value):
+        """Set days0, starting in days in Interval mode)"""
+        if self.program_schedule_type == 0:
+            raise RuntimeError(
+                "Cannot update Starting In Days when schedule type is 'Weekday'"
+            )
+
+        dlist = self._get_program_data().copy()
+        dlist[1] = value
+        params = self._format_program_data(dlist)
+        return await self._set_variables(params)
+
+    async def set_interval_days(self, value):
+        """Set days1, interval days in Interval mode)"""
+        if self.program_schedule_type == 0:
+            raise RuntimeError(
+                "Cannot update Interval Days when schedule type is 'Weekday'"
+            )
+
         dlist = self._get_program_data().copy()
         dlist[2] = value
         params = self._format_program_data(dlist)
@@ -514,3 +562,18 @@ class Program(object):
     def days1(self):
         """Retrieve days1 (not used in Weekday mode, interval days in Interval mode)"""
         return self._get_variable(2)
+
+    @property
+    def starting_in_days(self):
+        """Retrieve days0 (starting in days in Interval mode)"""
+        return self._get_variable(1)
+
+    @property
+    def interval_days(self):
+        """Retrieve days1 (interval days in Interval mode)"""
+        return self._get_variable(2)
+
+    def get_weekday_enabled(self, weekday):
+        """Retrieve program weekday enabled state ('Monday', 'Tuesday', etc.)"""
+        weekday_bits = self._get_variable(1)
+        return self._is_set(weekday_bits, WEEKDAYS.index(weekday))
