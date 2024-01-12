@@ -317,6 +317,7 @@ class Controller(object):
         variable = "dur"
         params = {variable: value}
         content = await self.request("/pq", params)
+        return content["result"]
 
     def _sensor_type_to_name(self, sensor_type):
         """Get sensor type name from value"""
