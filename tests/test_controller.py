@@ -109,3 +109,32 @@ class TestController:
             await controller.set_rain_delay(-1)
         with pytest.raises(ValueError):
             await controller.set_rain_delay(32768)
+
+    @pytest.mark.skipif(FIRMWARE_VERSION < 220, reason="only for version 220 and above")
+    @pytest.mark.asyncio
+    async def test_pause(self, controller):
+        await controller.refresh()
+
+        # Disable pause
+        await controller.disable_pause()
+        assert not controller.pause_active
+        assert controller.pause_time_remaining == 0
+
+        # Enable pause and verify the state and pause time
+        PAUSE_SECONDS = 600
+        await controller.set_pause(PAUSE_SECONDS)
+        assert controller.pause_active
+
+        assert controller.pause_time_remaining > 570
+        assert controller.pause_time_remaining <= 600
+
+        # Setting 0 minute pause clears the pause
+        await controller.set_pause(0)
+        assert not controller.pause_active
+        assert controller.pause_time_remaining == 0
+
+        # Valid range of 0-86400 chosen since the UI cannot display greater values.
+        with pytest.raises(ValueError):
+            await controller.set_pause(-1)
+        with pytest.raises(ValueError):
+            await controller.set_pause(86400 + 1)

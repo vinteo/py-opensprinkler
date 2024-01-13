@@ -151,7 +151,18 @@ class Controller(object):
         if refresh_on_update is not None:
             refresh = refresh_on_update
 
-        update_paths = ["/cv", "/co", "/cs", "/cm", "/mp", "/cp", "/dp", "/up", "/cr"]
+        update_paths = [
+            "/cv",
+            "/co",
+            "/cs",
+            "/cm",
+            "/mp",
+            "/cp",
+            "/dp",
+            "/up",
+            "/cr",
+            "/pq",
+        ]
         if refresh and path in update_paths:
             #  .1 was not enough settle time
             # .25 was mostly good but still too fast at times
@@ -301,6 +312,13 @@ class Controller(object):
         content = await self.request("/cv", params)
         return content["result"]
 
+    async def _set_pause(self, value):
+        """Set pause"""
+        variable = "dur"
+        params = {variable: value}
+        content = await self.request("/pq", params)
+        return content["result"]
+
     def _sensor_type_to_name(self, sensor_type):
         """Get sensor type name from value"""
         if sensor_type == 0:
@@ -381,6 +399,20 @@ class Controller(object):
 
     async def disable_rain_delay(self):
         return await self._set_variable("rd", 0)
+
+    async def set_pause(self, seconds):
+        """
+        Set pause time (in seconds). Range 0 - 86400 (24 hours). A value of 0 cancels any current pause.
+        """
+        # Note that the API does not actually specify a limit, but the UI footer cannot properly
+        # represent values above 24 hours so we constrain it to avoid misleading the user.
+        if seconds < 0 or seconds > 86400:
+            raise ValueError("pause must be 0 - 86400")
+
+        return await self._set_pause(seconds)
+
+    async def disable_pause(self):
+        return await self._set_pause(0)
 
     async def enable_remote_extension_mode(self):
         return await self._set_variable("re", 1)
@@ -674,6 +706,16 @@ class Controller(object):
         Master 1 and 2 off adjusted time (in steps of 5 seconds). Acceptable range is -600 to 0 (note: negative).
         """
         return self._get_option("mtof2")
+
+    @property
+    def pause_active(self):
+        """Retrieve pause active"""
+        return bool(self._get_variable("pq"))
+
+    @property
+    def pause_time_remaining(self):
+        """Retrieve remaining pause time, in seconds"""
+        return self._get_variable("pt")
 
     @property
     def rain_delay_active(self):
