@@ -133,9 +133,8 @@ class TestController:
         assert not controller.pause_active
         assert controller.pause_time_remaining == 0
 
-        # The OpenSprinkler API doesn't specify the limits of the pause value, however the
-        # code reveals a (C++) ulong is used to store the value.
+        # Valid range of 0-86400 chosen since the UI cannot display greater values.
         with pytest.raises(ValueError):
             await controller.set_pause(-1)
         with pytest.raises(ValueError):
-            await controller.set_pause(2**32 + 1)
+            await controller.set_pause(86400 + 1)

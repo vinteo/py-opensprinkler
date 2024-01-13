@@ -402,10 +402,12 @@ class Controller(object):
 
     async def set_pause(self, seconds):
         """
-        Set pause time (in seconds). Range 0 - 2^32 (~136 years). A value of 0 cancels any current pause.
+        Set pause time (in seconds). Range 0 - 86400 (24 hours). A value of 0 cancels any current pause.
         """
-        if seconds < 0 or seconds > 2**32:
-            raise ValueError("pause must be 0 - 2^32")
+        # Note that the API does not actually specify a limit, but the UI footer cannot properly
+        # represent values above 24 hours so we constrain it to avoid misleading the user.
+        if seconds < 0 or seconds > 86400:
+            raise ValueError("pause must be 0 - 86400")
 
         return await self._set_pause(seconds)
 
