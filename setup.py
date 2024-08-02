@@ -1,4 +1,5 @@
 """pyopensprinkler setup script."""
+
 from setuptools import setup
 
 version = "0.7.12"
