@@ -19,6 +19,8 @@ on:
   pull_request:
     branches: [master]
 
+permissions: {}
+
 ###############
 # Set the Job #
 ###############
@@ -29,6 +31,11 @@ jobs:
     # Set the agent to run on
     runs-on: ubuntu-latest
 
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
     ##################
     # Load all steps #
     ##################
@@ -37,14 +44,17 @@ jobs:
       # Checkout the code base #
       ##########################
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       ################################
       # Run Linter against code base #
       ################################
       - name: Lint Code Base
-        uses: github/super-linter@v4
+        uses: super-linter/super-linter@v6.8.0
         env:
           VALIDATE_ALL_CODEBASE: true
           DEFAULT_BRANCH: master
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDATE_PYTHON_PYLINT: false

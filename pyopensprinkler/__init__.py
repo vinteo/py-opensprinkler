@@ -1,4 +1,5 @@
 """Main OpenSprinkler module."""
+
 import asyncio
 import datetime
 import functools
@@ -494,7 +495,7 @@ class Controller(object):
         """Retrieve firmware version name"""
         fwv = self.firmware_version
         try:
-            return f"{ int( fwv / 100 )}.{ int( fwv / 10 ) % 10 }.{ fwv % 10 }"
+            return f"{int(fwv / 100)}.{int(fwv / 10) % 10}.{fwv % 10}"
         except TypeError:
             return None
 
@@ -524,7 +525,9 @@ class Controller(object):
             return "Demo"
 
         try:
-            return f"{ int( self.hardware_version / 10 ) % 10 }.{ self.hardware_version % 10 }"
+            return (
+                f"{int(self.hardware_version / 10) % 10}.{self.hardware_version % 10}"
+            )
         except TypeError:
             return None
 
