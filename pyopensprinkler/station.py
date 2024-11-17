@@ -62,15 +62,17 @@ class Station(object):
         return bool(bits[position])
 
     async def _bit_set(self, bit_property, bit_update_name, value):
-        bits = self._controller._state["stations"][bit_property]
+        bit_list = self._controller._state["stations"][bit_property]
         bank = math.floor(self._index / 8)
-        bits = list(reversed([int(x) for x in list("{0:08b}".format(bits[bank]))]))
+        bits = list(reversed([int(x) for x in list("{0:08b}".format(bit_list[bank]))]))
         position = self._index % 8
         value = int(value)
         bits[position] = value
         bits = list(reversed(bits))
         bits = "".join(map(str, bits))
         bits = int(bits, 2)
+        bit_list[bank] = bits
+        self._controller._state["stations"][bit_property] = bit_list
         return await self._set_attribute(bit_update_name + str(bank), bits)
 
     async def run(self, seconds=None):
