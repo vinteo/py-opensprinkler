@@ -197,6 +197,8 @@ class Controller(object):
             if "verify_ssl" in self._opts:
                 verify_ssl = self._opts["verify_ssl"]
 
+            self._http_client.cookie_jar.clear()
+
             async with self._http_client.get(
                 url, timeout=timeout, headers=headers, verify_ssl=verify_ssl, auth=auth
             ) as resp:
