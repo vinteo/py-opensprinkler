@@ -87,7 +87,7 @@ Acceptable range for seconds is 0 to 64800 (18 hours)
 
 ## Development
 
-OpenSprinkler API documentation available [here](https://openthings.freshdesk.com/support/solutions/articles/5000716363-os-api-documents).
+[OpenSprinkler API documentation available here](https://openthings.freshdesk.com/support/solutions/articles/5000716363-os-api-documents).
 
 ```bash
 virtualenv .
