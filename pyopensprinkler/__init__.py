@@ -412,6 +412,13 @@ class Controller(object):
         if seconds < 0 or seconds > 86400:
             raise ValueError("pause must be 0 - 86400")
 
+        # Despite the API docs, all calls to the pause function actually just toggle pause - the duration
+        # being zero has little to do with anything. Thus, if we're trying to set a new pause duration,
+        # clear the old one first.
+        await self.refresh()
+        if seconds > 0 and self.pause_active:
+            await self._set_pause(0)
+
         return await self._set_pause(seconds)
 
     async def disable_pause(self):
