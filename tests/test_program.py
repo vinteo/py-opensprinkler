@@ -160,6 +160,36 @@ class TestProgram:
         assert program.program_schedule_type == 0
         assert program.program_schedule_type_name == "weekday"
 
+    @pytest.mark.skipif(FIRMWARE_VERSION < 221, reason="only for version 221 and above")
+    @pytest.mark.asyncio
+    async def test_program_new_schedule_types(self, controller, program):
+        assert program.program_schedule_type == 0
+        assert program.program_schedule_type_name == "weekday"
+
+        await program.set_program_schedule_type(1)
+        assert program.program_schedule_type == 1
+        assert program.program_schedule_type_name == "single-run"
+
+        await program.set_program_schedule_type(2)
+        assert program.program_schedule_type == 2
+        assert program.program_schedule_type_name == "monthly"
+
+    @pytest.mark.skipif(FIRMWARE_VERSION < 220, reason="only for version 220 and above")
+    @pytest.mark.asyncio
+    async def test_program_date_range(self, controller, program):
+        assert program.date_range_enabled == 0
+
+        await program.set_date_range_flag(1)
+        assert program.date_range_enabled == 1
+
+        await program.set_date_range_from(6, 30)
+        assert program.date_range_from[0] == 6
+        assert program.date_range_from[1] == 30
+
+        await program.set_date_range_to(7, 31)
+        assert program.date_range_to[0] == 7
+        assert program.date_range_to[1] == 31
+
     @pytest.mark.asyncio
     async def test_start_time_type(self, controller, program):
         assert program.start_time_type == 0
