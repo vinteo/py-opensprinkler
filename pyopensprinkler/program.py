@@ -1,22 +1,33 @@
 """Program module handling /program/ API calls."""
 
 import json
+import logging
 
 from pyopensprinkler.const import (
     SCHEDULE_START_TIME_FIXED,
+    SCHEDULE_START_TIME_FIXED_CODE,
     SCHEDULE_START_TIME_OFFSET_DISABLED,
     SCHEDULE_START_TIME_OFFSET_MIDNIGHT,
     SCHEDULE_START_TIME_OFFSET_SUNRISE,
     SCHEDULE_START_TIME_OFFSET_SUNSET,
     SCHEDULE_START_TIME_REPEATING,
+    SCHEDULE_START_TIME_REPEATING_CODE,
     SCHEDULE_TYPE_INTERVAL_DAY,
-    SCHEDULE_TYPE_WEEKDAY,
+    SCHEDULE_TYPE_INTERVAL_DAY_CODE,
+    SCHEDULE_TYPE_MONTHLY,
+    SCHEDULE_TYPE_MONTHLY_CODE,
+    SCHEDULE_TYPE_SINGLE_RUN,
+    SCHEDULE_TYPE_SINGLE_RUN_CODE,
+    SCHEDULE_TYPE_WEEKLY,
+    SCHEDULE_TYPE_WEEKLY_CODE,
     START_TIME_MINUTES_MASK,
     START_TIME_SIGN_BIT,
     START_TIME_SUNRISE_BIT,
     START_TIME_SUNSET_BIT,
     WEEKDAYS,
 )
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class Program(object):
@@ -65,10 +76,17 @@ class Program(object):
         return int("".join(map(str, list(reversed(bits)))), 2)
 
     def _format_program_data(self, dlist):
-        """Move program name from 'v' to 'name' parameter and remove spaces."""
+        """Convert from /jp (Get) to /cp (Change) message format"""
+        # Move program name from 'v' to 'name' parameter.
         name = dlist.pop(5)
+
+        # Move Date-range tuple from 'v' to 'from' and 'to' parameters
+        date_range = dlist.pop(5)
+
+        # Remove spaces.
         v = json.dumps(dlist).replace(" ", "")
-        params = {"v": v, "name": name}
+
+        params = {"v": v, "name": name, "from": date_range[1], "to": date_range[2]}
         return params
 
     def _is_set(self, x, n):
@@ -142,6 +160,18 @@ class Program(object):
         else:
             return SCHEDULE_START_TIME_OFFSET_MIDNIGHT
 
+    def _is_valid_date(self, month, day):
+        """Check if month and day are valid"""
+        if not 1 <= month <= 12:
+            return False
+        if not 1 <= day <= 31:
+            return False
+        if month in [4, 6, 9, 11] and day > 30:
+            return False
+        if month == 2 and day > 29:
+            return False
+        return True
+
     async def enable(self):
         """Enable operation"""
         return await self.set_enabled(True)
@@ -199,23 +229,31 @@ class Program(object):
         dlist = self._get_program_data().copy()
         bits = self._get_data_flag_bits()
 
-        if value != 0 and value != 3:
-            raise ValueError("Value must be 0 or 3")
+        if not 0 <= value <= 3:
+            raise ValueError("Value must be between 0 and 3")
 
-        # weekday
-        if value == 0:
+        if value == SCHEDULE_TYPE_WEEKLY_CODE:
             bits[4] = 0
             bits[5] = 0
 
-        # interval-day
-        if value == 3:
+        if value == SCHEDULE_TYPE_SINGLE_RUN_CODE:
+            bits[4] = 1
+            bits[5] = 0
+
+        if value == SCHEDULE_TYPE_MONTHLY_CODE:
+            bits[4] = 0
+            bits[5] = 1
+
+        if value == SCHEDULE_TYPE_INTERVAL_DAY_CODE:
             bits[4] = 1
             bits[5] = 1
 
         # If changing type, data in days0-1 becomes meaningless, so set to default.
         if dlist[0] != self._bits_to_int(bits):
             dlist[1] = 0
-            dlist[2] = 0 if value == 0 else 1  # Interval day must be >= 1
+            dlist[2] = (
+                1 if value == SCHEDULE_TYPE_INTERVAL_DAY_CODE else 0
+            )  # Interval day must be >= 1
             dlist[0] = self._bits_to_int(bits)
         params = self._format_program_data(dlist)
         return await self._set_variables(params)
@@ -227,19 +265,17 @@ class Program(object):
         if value < 0 or value > 1:
             raise ValueError("Value must be 0 or 1")
 
-        # repeating
-        if value == 0:
+        if value == SCHEDULE_START_TIME_REPEATING_CODE:
             bits[6] = 0
 
-        # fixed-time
-        if value == 1:
+        if value == SCHEDULE_START_TIME_FIXED_CODE:
             bits[6] = 1
 
         # If changing type, data in start1-3 becomes meaningless, so set to default.
         if dlist[0] != self._bits_to_int(bits):
-            dlist[3][1] = 0 if value == 0 else -1
-            dlist[3][2] = 0 if value == 0 else -1
-            dlist[3][3] = 0 if value == 0 else -1
+            dlist[3][1] = 0 if value == SCHEDULE_START_TIME_REPEATING_CODE else -1
+            dlist[3][2] = 0 if value == SCHEDULE_START_TIME_REPEATING_CODE else -1
+            dlist[3][3] = 0 if value == SCHEDULE_START_TIME_REPEATING_CODE else -1
             dlist[0] = self._bits_to_int(bits)
         params = self._format_program_data(dlist)
         return await self._set_variables(params)
@@ -334,9 +370,9 @@ class Program(object):
 
     async def set_weekday_enabled(self, weekday, enabled):
         """Set program weekday enabled state (weekday = 'Monday', 'Tuesday', etc.)"""
-        if self.program_schedule_type == 3:
+        if self.program_schedule_type != 0:
             raise RuntimeError(
-                "Cannot update Weekly schedule when schedule type is 'Interval'"
+                "Cannot update Weekly schedule when schedule type is not 'Weekday'"
             )
 
         dlist = self._get_program_data().copy()
@@ -357,24 +393,24 @@ class Program(object):
         return await self._set_variables(params)
 
     async def set_days0(self, value):
-        """Set days0 (weekday bits in Weekday mode, starting in days in Interval mode)"""
+        """Set days0 (meaning depends on schedule type)"""
         dlist = self._get_program_data().copy()
         dlist[1] = value
         params = self._format_program_data(dlist)
         return await self._set_variables(params)
 
     async def set_days1(self, value):
-        """Set days1 (not used in Weekday mode, interval days in Interval mode)"""
+        """Set days1 (meaning depends on schedule type)"""
         dlist = self._get_program_data().copy()
         dlist[2] = value
         params = self._format_program_data(dlist)
         return await self._set_variables(params)
 
     async def set_starting_in_days(self, value):
-        """Set days0, starting in days in Interval mode)"""
-        if self.program_schedule_type == 0:
+        """Set days0 as starting in days in Interval mode)"""
+        if self.program_schedule_type != SCHEDULE_TYPE_INTERVAL_DAY_CODE:
             raise RuntimeError(
-                "Cannot update Starting In Days when schedule type is 'Weekday'"
+                "Cannot update Starting In Days when schedule type is not 'Interval-Day'"
             )
 
         dlist = self._get_program_data().copy()
@@ -383,14 +419,80 @@ class Program(object):
         return await self._set_variables(params)
 
     async def set_interval_days(self, value):
-        """Set days1, interval days in Interval mode)"""
-        if self.program_schedule_type == 0:
+        """Set days1 as interval days in Interval mode)"""
+        if self.program_schedule_type != SCHEDULE_TYPE_INTERVAL_DAY_CODE:
             raise RuntimeError(
-                "Cannot update Interval Days when schedule type is 'Weekday'"
+                "Cannot update Interval Days when schedule type is not 'Interval-Day'"
             )
 
         dlist = self._get_program_data().copy()
         dlist[2] = value
+        params = self._format_program_data(dlist)
+        return await self._set_variables(params)
+
+    async def set_monthly_day(self, day_of_month):
+        """Set days0 as monthly day in Monthly mode)"""
+        if self.program_schedule_type != SCHEDULE_TYPE_MONTHLY_CODE:
+            raise RuntimeError(
+                "Cannot update Monthly Day when schedule type is not 'Monthly'"
+            )
+
+        if not 0 <= day_of_month <= 31:
+            raise ValueError("Value must be between 0 and 31")
+
+        dlist = self._get_program_data().copy()
+        dlist[1] = day_of_month
+        params = self._format_program_data(dlist)
+        return await self._set_variables(params)
+
+    async def set_single_run_day(self, days_since_epoch):
+        """Set days0, days1 as single run day in Single-run mode)"""
+        if self.program_schedule_type != SCHEDULE_TYPE_SINGLE_RUN_CODE:
+            raise RuntimeError(
+                "Cannot update Single Run Day when schedule type is not 'Single-run'"
+            )
+
+        if not 0 <= days_since_epoch <= 65535:
+            raise ValueError("Value must be between 0 and 65535")
+
+        dlist = self._get_program_data().copy()
+        dlist[1] = (days_since_epoch >> 8) & 0xFF
+        dlist[2] = days_since_epoch & 0xFF
+        params = self._format_program_data(dlist)
+        return await self._set_variables(params)
+
+    async def set_date_range_from(self, start_month: int, start_day: int):
+        """Set program date range start date"""
+        if not self._is_valid_date(start_month, start_day):
+            raise ValueError("Invalid date")
+
+        dlist = self._get_program_data().copy()
+        dlist[6][1] = (start_month << 5) + start_day
+        params = self._format_program_data(dlist)
+        return await self._set_variables(params)
+
+    async def set_date_range_to(self, end_month: int, end_day: int):
+        """Set program date range end date"""
+        if not self._is_valid_date(end_month, end_day):
+            raise ValueError("Invalid date")
+
+        dlist = self._get_program_data().copy()
+        dlist[6][2] = (end_month << 5) + end_day
+        params = self._format_program_data(dlist)
+        return await self._set_variables(params)
+
+    async def set_date_range_flag(self, enabled: bool):
+        """Adjust program date range flag"""
+        if enabled < 0 or enabled > 1:
+            raise ValueError("Enabled must be 0 or 1")
+
+        dlist = self._get_program_data().copy()
+
+        # Set date range bit in flag field
+        bits = self._get_data_flag_bits()
+        bits[7] = enabled
+        dlist[0] = self._bits_to_int(bits)
+
         params = self._format_program_data(dlist)
         return await self._set_variables(params)
 
@@ -475,10 +577,16 @@ class Program(object):
     def program_schedule_type_name(self):
         value = self.program_schedule_type
 
-        if value == 0:
-            return SCHEDULE_TYPE_WEEKDAY
+        if value == SCHEDULE_TYPE_WEEKLY_CODE:
+            return SCHEDULE_TYPE_WEEKLY
 
-        if value == 3:
+        if value == SCHEDULE_TYPE_SINGLE_RUN_CODE:
+            return SCHEDULE_TYPE_SINGLE_RUN
+
+        if value == SCHEDULE_TYPE_MONTHLY_CODE:
+            return SCHEDULE_TYPE_MONTHLY
+
+        if value == SCHEDULE_TYPE_INTERVAL_DAY_CODE:
             return SCHEDULE_TYPE_INTERVAL_DAY
 
         return None
@@ -496,6 +604,27 @@ class Program(object):
 
         if value == 1:
             return SCHEDULE_START_TIME_FIXED
+
+    @property
+    def date_range_enabled(self):
+        """Retrieve Date-range enable flag"""
+        return self._get_data_flag_bits()[7]
+
+    @property
+    def date_range_from(self):
+        """Retrieve date range start date"""
+        date_range = self._get_variable(6)
+        month = date_range[1] >> 5
+        day = date_range[1] & 0x1F
+        return month, day
+
+    @property
+    def date_range_to(self):
+        """Retrieve date range end date"""
+        date_range = self._get_variable(6)
+        month = date_range[2] >> 5
+        day = date_range[2] & 0x1F
+        return month, day
 
     def get_program_start_time(self, start_index):
         """Retrieve program start time in encoded value"""
@@ -559,12 +688,12 @@ class Program(object):
 
     @property
     def days0(self):
-        """Retrieve days0 (weekday bits in Weekday mode, starting in days in Interval mode)"""
+        """Retrieve days0 (meaning depends on the schedule type)"""
         return self._get_variable(1)
 
     @property
     def days1(self):
-        """Retrieve days1 (not used in Weekday mode, interval days in Interval mode)"""
+        """Retrieve days1 (meaning depends on the schedule type)"""
         return self._get_variable(2)
 
     @property
@@ -576,6 +705,16 @@ class Program(object):
     def interval_days(self):
         """Retrieve days1 (interval days in Interval mode)"""
         return self._get_variable(2)
+
+    @property
+    def monthly_day(self):
+        """Retrieve days0 (day of month in Monthly mode)"""
+        return self._get_variable(1)
+
+    @property
+    def single_run_day(self):
+        """Retrieve days0 and days1 as 16-bit unsigned integer (days since epoch time in Single-Run mode)"""
+        return self._get_variable(2) + (self._get_variable(1) << 8)
 
     def get_weekday_enabled(self, weekday):
         """Retrieve program weekday enabled state ('Monday', 'Tuesday', etc.)"""
