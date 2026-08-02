@@ -44,6 +44,13 @@ from pyopensprinkler.const import (
 from pyopensprinkler.program import Program
 from pyopensprinkler.station import Station
 
+from .exceptions import (
+    OpenSprinklerApiError,
+    OpenSprinklerAuthError,
+    OpenSprinklerConnectionError,
+    OpenSprinklerNoStateError,
+)
+
 
 def synchronized(lock):
     """Synchronization decorator"""
@@ -60,22 +67,6 @@ def synchronized(lock):
 
 
 lock = threading.Lock()
-
-
-class OpenSprinklerAuthError(Exception):
-    """Exception for authentication error."""
-
-
-class OpenSprinklerConnectionError(Exception):
-    """Exception for connection error."""
-
-
-class OpenSprinklerNoStateError(Exception):
-    """Exception for no state."""
-
-
-class OpenSprinklerApiError(Exception):
-    """Exception for an error returned by the API."""
 
 
 class Controller(object):
