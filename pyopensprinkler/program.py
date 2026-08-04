@@ -27,6 +27,8 @@ from pyopensprinkler.const import (
     WEEKDAYS,
 )
 
+from .exceptions import FirmwareNotSupportedError
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -80,8 +82,15 @@ class Program(object):
         # Move program name from 'v' to 'name' parameter.
         name = dlist.pop(5)
 
-        # Move Date-range tuple from 'v' to 'from' and 'to' parameters
-        date_range = dlist.pop(5)
+        # Move Date-range tuple from 'v' to 'from' and 'to' parameters, if present (since v2.2.0(1)).
+        if len(dlist) >= 6:
+            date_range = dlist.pop(5)
+        else:
+            date_range = [
+                0,
+                33,
+                415,
+            ]  # Jan 1 to Dec 31 (default range, but won't be used)
 
         # Remove spaces.
         v = json.dumps(dlist).replace(" ", "")
@@ -172,6 +181,14 @@ class Program(object):
             return False
         return True
 
+    def _is_required_version(self, version, minor_version):
+        if self._controller.firmware_version > version:
+            return True
+        elif self._controller.firmware_version == version:
+            return self._controller.firmware_minor_version >= minor_version
+        else:
+            return False
+
     async def enable(self):
         """Enable operation"""
         return await self.set_enabled(True)
@@ -226,11 +243,17 @@ class Program(object):
         return await self._set_variables(params)
 
     async def set_program_schedule_type(self, value):
-        dlist = self._get_program_data().copy()
-        bits = self._get_data_flag_bits()
+        if value in [
+            SCHEDULE_TYPE_SINGLE_RUN_CODE,
+            SCHEDULE_TYPE_MONTHLY_CODE,
+        ] and not self._is_required_version(221, 1):
+            raise FirmwareNotSupportedError("Feature requires firmware v2.2.1(1)")
 
         if not 0 <= value <= 3:
             raise ValueError("Value must be between 0 and 3")
+
+        dlist = self._get_program_data().copy()
+        bits = self._get_data_flag_bits()
 
         if value == SCHEDULE_TYPE_WEEKLY_CODE:
             bits[4] = 0
@@ -463,6 +486,9 @@ class Program(object):
 
     async def set_date_range_from(self, start_month: int, start_day: int):
         """Set program date range start date"""
+        if not self._is_required_version(220, 1):
+            raise FirmwareNotSupportedError("Feature requires firmware v2.2.0(1)")
+
         if not self._is_valid_date(start_month, start_day):
             raise ValueError("Invalid date")
 
@@ -473,6 +499,9 @@ class Program(object):
 
     async def set_date_range_to(self, end_month: int, end_day: int):
         """Set program date range end date"""
+        if not self._is_required_version(220, 1):
+            raise FirmwareNotSupportedError("Feature requires firmware v2.2.0(1)")
+
         if not self._is_valid_date(end_month, end_day):
             raise ValueError("Invalid date")
 
@@ -483,12 +512,14 @@ class Program(object):
 
     async def set_date_range_flag(self, enabled: bool):
         """Adjust program date range flag"""
+        if not self._is_required_version(220, 1):
+            raise FirmwareNotSupportedError("Feature requires firmware v2.2.0(1)")
+
         if enabled < 0 or enabled > 1:
             raise ValueError("Enabled must be 0 or 1")
 
-        dlist = self._get_program_data().copy()
-
         # Set date range bit in flag field
+        dlist = self._get_program_data().copy()
         bits = self._get_data_flag_bits()
         bits[7] = enabled
         dlist[0] = self._bits_to_int(bits)
@@ -608,23 +639,32 @@ class Program(object):
     @property
     def date_range_enabled(self):
         """Retrieve Date-range enable flag"""
-        return self._get_data_flag_bits()[7]
+        if not self._is_required_version(220, 1):
+            return 0
+        else:
+            return self._get_data_flag_bits()[7]
 
     @property
     def date_range_from(self):
         """Retrieve date range start date"""
-        date_range = self._get_variable(6)
-        month = date_range[1] >> 5
-        day = date_range[1] & 0x1F
-        return month, day
+        if not self._is_required_version(220, 1):
+            return 1, 1  # Jan 1 default
+        else:
+            date_range = self._get_variable(6)
+            month = date_range[1] >> 5
+            day = date_range[1] & 0x1F
+            return month, day
 
     @property
     def date_range_to(self):
         """Retrieve date range end date"""
-        date_range = self._get_variable(6)
-        month = date_range[2] >> 5
-        day = date_range[2] & 0x1F
-        return month, day
+        if not self._is_required_version(220, 1):
+            return 12, 31  # Dec 31 default
+        else:
+            date_range = self._get_variable(6)
+            month = date_range[2] >> 5
+            day = date_range[2] & 0x1F
+            return month, day
 
     def get_program_start_time(self, start_index):
         """Retrieve program start time in encoded value"""
