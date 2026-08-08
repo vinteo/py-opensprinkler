@@ -394,6 +394,17 @@ class Controller(object):
     async def disable_rain_delay(self):
         return await self._set_variable("rd", 0)
 
+    async def set_station_delay(self, seconds):
+        """
+        Set station delay time (in seconds). Range is -600 to 600 in increments of 5 seconds.
+        """
+
+        if (not -600 <= seconds <= 600) or (seconds % 5 != 0):
+            raise ValueError(
+                "Delay must be in seconds between -600 to 600 in increments of 5 seconds"
+            )
+        return await self._set_option("sdt", seconds)
+
     async def set_pause(self, seconds):
         """
         Set pause time (in seconds). Range 0 - 86400 (24 hours). A value of 0 cancels any current pause.
@@ -657,6 +668,11 @@ class Controller(object):
     def current_draw(self):
         """Retrieve current draw in mA"""
         return self._get_variable("curr")
+
+    @property
+    def station_delay(self):
+        """Retrieve station delay in seconds"""
+        return self._get_option("sdt")
 
     @property
     def master_station_1(self):

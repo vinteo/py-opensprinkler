@@ -147,6 +147,25 @@ class TestStation:
         await controller.stations[0].set_sequential_operation(False)
         assert not controller.stations[0].sequential_operation
 
+    @pytest.mark.skipif(FIRMWARE_VERSION < 220, reason="only for version 220 and above")
+    @pytest.mark.asyncio
+    async def test_set_group_operation(self, controller):
+        await controller.refresh()
+
+        GROUP = 0
+        await controller.stations[0].set_group(GROUP)
+        assert controller.stations[0].group == GROUP
+
+        GROUP = 255
+        await controller.stations[0].set_group(GROUP)
+        assert controller.stations[0].group == GROUP
+
+        # Valid range of 0 to 255
+        with pytest.raises(ValueError):
+            await controller.stations[0].set_group(-1)
+        with pytest.raises(ValueError):
+            await controller.stations[0].set_group(256)
+
     @pytest.mark.skipif(FIRMWARE_VERSION < 221, reason="only for version 221 and above")
     @pytest.mark.asyncio
     async def test_run_with_qo_append(self, controller):

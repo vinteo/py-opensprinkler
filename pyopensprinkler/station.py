@@ -12,6 +12,9 @@ from pyopensprinkler.const import (
     STATION_TYPE_STANDARD,
 )
 
+from .exceptions import FirmwareNotSupportedError
+from .utils import _is_new_feature_supported, _is_removed_feature_supported
+
 
 class Station(object):
     """Station class with /station/ API calls."""
@@ -131,6 +134,14 @@ class Station(object):
         else:
             return await self._bit_set(bit_property, bit_update_name, False)
 
+    async def set_group(self, value):
+        if not _is_new_feature_supported(self._controller, 220, 1):
+            raise FirmwareNotSupportedError("Feature requires firmware v2.2.0(1)")
+
+        if not 0 <= value <= 255:
+            raise ValueError("Value must be between 0 and 255")
+        return await self._set_attribute("g" + str(self.index), value)
+
     async def set_rain_delay_ignored(self, value):
         bit_property = "ignore_rain"
         bit_update_name = "i"
@@ -156,6 +167,9 @@ class Station(object):
             return await self._bit_set(bit_property, bit_update_name, False)
 
     async def set_sequential_operation(self, value):
+        if not _is_removed_feature_supported(self._controller, 221, 0):
+            raise FirmwareNotSupportedError("Feature removed in v2.2.1(0)")
+
         bit_property = "stn_seq"
         bit_update_name = "q"
         if value:
@@ -228,6 +242,13 @@ class Station(object):
         return self._bit_check("masop2")
 
     @property
+    def group(self):
+        """Station group"""
+        if not _is_new_feature_supported(self._controller, 220, 1):
+            raise FirmwareNotSupportedError("Feature requires firmware v2.2.0(1)")
+        return self._controller._state["stations"]["stn_grp"][self._index]
+
+    @property
     def rain_delay_ignored(self):
         return self._bit_check("ignore_rain")
 
@@ -245,6 +266,9 @@ class Station(object):
 
     @property
     def sequential_operation(self):
+        if not _is_removed_feature_supported(self._controller, 221, 0):
+            raise FirmwareNotSupportedError("Feature removed in v2.2.1(0)")
+
         return self._bit_check("stn_seq")
 
     @property
