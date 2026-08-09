@@ -28,6 +28,7 @@ from pyopensprinkler.const import (
 )
 
 from .exceptions import FirmwareNotSupportedError
+from .utils import _is_new_feature_supported
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -181,14 +182,6 @@ class Program(object):
             return False
         return True
 
-    def _is_required_version(self, version, minor_version):
-        if self._controller.firmware_version > version:
-            return True
-        elif self._controller.firmware_version == version:
-            return self._controller.firmware_minor_version >= minor_version
-        else:
-            return False
-
     async def enable(self):
         """Enable operation"""
         return await self.set_enabled(True)
@@ -246,7 +239,7 @@ class Program(object):
         if value in [
             SCHEDULE_TYPE_SINGLE_RUN_CODE,
             SCHEDULE_TYPE_MONTHLY_CODE,
-        ] and not self._is_required_version(221, 1):
+        ] and not _is_new_feature_supported(self._controller, 221, 1):
             raise FirmwareNotSupportedError("Feature requires firmware v2.2.1(1)")
 
         if not 0 <= value <= 3:
@@ -486,7 +479,7 @@ class Program(object):
 
     async def set_date_range_from(self, start_month: int, start_day: int):
         """Set program date range start date"""
-        if not self._is_required_version(220, 1):
+        if not _is_new_feature_supported(self._controller, 220, 1):
             raise FirmwareNotSupportedError("Feature requires firmware v2.2.0(1)")
 
         if not self._is_valid_date(start_month, start_day):
@@ -499,7 +492,7 @@ class Program(object):
 
     async def set_date_range_to(self, end_month: int, end_day: int):
         """Set program date range end date"""
-        if not self._is_required_version(220, 1):
+        if not _is_new_feature_supported(self._controller, 220, 1):
             raise FirmwareNotSupportedError("Feature requires firmware v2.2.0(1)")
 
         if not self._is_valid_date(end_month, end_day):
@@ -512,7 +505,7 @@ class Program(object):
 
     async def set_date_range_flag(self, enabled: bool):
         """Adjust program date range flag"""
-        if not self._is_required_version(220, 1):
+        if not _is_new_feature_supported(self._controller, 220, 1):
             raise FirmwareNotSupportedError("Feature requires firmware v2.2.0(1)")
 
         if enabled < 0 or enabled > 1:
@@ -639,7 +632,7 @@ class Program(object):
     @property
     def date_range_enabled(self):
         """Retrieve Date-range enable flag"""
-        if not self._is_required_version(220, 1):
+        if not _is_new_feature_supported(self._controller, 220, 1):
             return 0
         else:
             return self._get_data_flag_bits()[7]
@@ -647,7 +640,7 @@ class Program(object):
     @property
     def date_range_from(self):
         """Retrieve date range start date"""
-        if not self._is_required_version(220, 1):
+        if not _is_new_feature_supported(self._controller, 220, 1):
             return 1, 1  # Jan 1 default
         else:
             date_range = self._get_variable(6)
@@ -658,7 +651,7 @@ class Program(object):
     @property
     def date_range_to(self):
         """Retrieve date range end date"""
-        if not self._is_required_version(220, 1):
+        if not _is_new_feature_supported(self._controller, 220, 1):
             return 12, 31  # Dec 31 default
         else:
             date_range = self._get_variable(6)

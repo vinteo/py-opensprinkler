@@ -139,6 +139,31 @@ class TestController:
         with pytest.raises(ValueError):
             await controller.set_pause(86400 + 1)
 
+    @pytest.mark.skipif(FIRMWARE_VERSION < 217, reason="only for version 217 and above")
+    @pytest.mark.asyncio
+    async def test_station_delay(self, controller):
+        await controller.refresh()
+
+        # Enable delay and verify the delay time
+        DELAY_SECONDS = 600
+        await controller.set_station_delay(DELAY_SECONDS)
+        assert controller.station_delay == DELAY_SECONDS
+
+        # Enable delay and verify the delay time
+        DELAY_SECONDS = -600
+        await controller.set_station_delay(DELAY_SECONDS)
+        assert controller.station_delay == DELAY_SECONDS
+
+        # Setting 0 seconds delay clears the delay
+        await controller.set_station_delay(0)
+        assert controller.station_delay == 0
+
+        # Valid range of -600 to 600
+        with pytest.raises(ValueError):
+            await controller.set_station_delay(-601)
+        with pytest.raises(ValueError):
+            await controller.set_station_delay(601)
+
     @pytest.mark.skipif(FIRMWARE_VERSION < 221, reason="only for version 221 and above")
     @pytest.mark.asyncio
     async def test_run_once_program_uwt(self, controller):
