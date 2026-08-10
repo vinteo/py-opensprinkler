@@ -183,33 +183,86 @@ class Program(object):
         return True
 
     async def enable(self):
-        """Enable operation"""
+        """Enable the program.
+
+        Returns:
+            API result code (1 = success).
+        """
         return await self.set_enabled(True)
 
     async def disable(self):
-        """Disable operation"""
+        """Disable the program.
+
+        Returns:
+            API result code (1 = success).
+        """
         return await self.set_enabled(False)
 
     async def set_enabled(self, value):
+        """Set the program enabled state.
+
+        Args:
+            value: True to enable, False to disable.
+
+        Returns:
+            API result code (1 = success).
+        """
         if value:
             return await self._set_variable("en", 1)
         else:
             return await self._set_variable("en", 0)
 
     async def run(self, uwt=None, qo=None):
-        """Run program"""
+        """Run the program manually.
+
+        Args:
+            uwt: Optional weather adjustment flag (0/1); defaults to the
+                program's ``use_weather_adjustments`` setting.
+            qo: Optional queue option (0 = append to queue, 1 = insert
+                ahead of queue, 2 = replace queue).
+
+        Returns:
+            API result code (1 = success).
+        """
         return await self._manual_run(uwt, qo)
 
     async def set_name(self, name):
+        """Set the program name.
+
+        Args:
+            name: New program name.
+
+        Returns:
+            API result code (1 = success).
+        """
         dlist = self._get_program_data().copy()
         dlist[5] = name
         params = self._format_program_data(dlist)
         return await self._set_variables(params)
 
     async def set_use_weather_adjustments(self, value):
+        """Set whether the program uses weather (water level) adjustments.
+
+        Args:
+            value: Truthy to enable weather adjustments.
+
+        Returns:
+            API result code (1 = success).
+        """
         return await self._set_variable("uwt", int(value))
 
     async def set_odd_even_restriction(self, value):
+        """Set the odd/even day restriction.
+
+        Args:
+            value: 0 = none, 1 = odd days, 2 = even days.
+
+        Returns:
+            API result code (1 = success).
+
+        Raises:
+            ValueError: If value is outside 0-2.
+        """
         dlist = self._get_program_data().copy()
         bits = self._get_data_flag_bits()
 
@@ -236,6 +289,24 @@ class Program(object):
         return await self._set_variables(params)
 
     async def set_program_schedule_type(self, value):
+        """Set the program schedule type.
+
+        Changing the type resets days0/days1 to defaults since their
+        meaning depends on the schedule type.
+
+        Args:
+            value: 0 = weekly, 1 = single run, 2 = monthly,
+                3 = interval day. Single run and monthly require
+                firmware v2.2.1(1).
+
+        Returns:
+            API result code (1 = success).
+
+        Raises:
+            FirmwareNotSupportedError: If value is single run or monthly
+                and the firmware is older than v2.2.1(1).
+            ValueError: If value is outside 0-3.
+        """
         if value in [
             SCHEDULE_TYPE_SINGLE_RUN_CODE,
             SCHEDULE_TYPE_MONTHLY_CODE,
@@ -275,6 +346,20 @@ class Program(object):
         return await self._set_variables(params)
 
     async def set_start_time_type(self, value):
+        """Set the start time type.
+
+        Changing the type resets start1-start3 to defaults since their
+        meaning depends on the start time type.
+
+        Args:
+            value: 0 = repeating, 1 = fixed.
+
+        Returns:
+            API result code (1 = success).
+
+        Raises:
+            ValueError: If value is not 0 or 1.
+        """
         dlist = self._get_program_data().copy()
         bits = self._get_data_flag_bits()
 
@@ -297,7 +382,19 @@ class Program(object):
         return await self._set_variables(params)
 
     async def set_program_start_time(self, start_index, start_time):
-        """Set program start time with encoded value for start0, 1, 2, or 3"""
+        """Set a program start time.
+
+        Args:
+            start_index: Which start time to set (0-3).
+            start_time: Encoded start time value (minutes from midnight
+                for simple start times).
+
+        Returns:
+            API result code (1 = success).
+
+        Raises:
+            IndexError: If start_index is outside 0-3.
+        """
         if not 0 <= start_index <= 3:
             raise IndexError("start_index must be between 0 and 3")
         dlist = self._get_program_data().copy()
@@ -306,14 +403,38 @@ class Program(object):
         return await self._set_variables(params)
 
     async def set_program_start_times(self, start_times):
-        """Set program start times with encoded list for start0-start3"""
+        """Set all four program start times at once.
+
+        Args:
+            start_times: List of 4 encoded start time values for
+                start0-start3.
+
+        Returns:
+            API result code (1 = success).
+        """
         dlist = self._get_program_data().copy()
         dlist[3] = start_times
         params = self._format_program_data(dlist)
         return await self._set_variables(params)
 
     async def set_program_start_time_offset(self, start_index, start_time_offset):
-        """Set program start time offset in minutes without chaning current offset type"""
+        """Set a program start time offset in minutes.
+
+        Keeps the current offset type; a disabled start time is assumed
+        to become midnight-relative.
+
+        Args:
+            start_index: Which start time to update (0-3).
+            start_time_offset: Offset in minutes (negative for before).
+
+        Returns:
+            API result code (1 = success).
+
+        Raises:
+            IndexError: If start_index is outside 0-3.
+            RuntimeError: If start_index > 0 and the start time type is
+                'repeating' (only start0 exists in that mode).
+        """
         if not 0 <= start_index <= 3:
             raise IndexError("start_index must be between 0 and 3")
 
@@ -338,7 +459,24 @@ class Program(object):
     async def set_program_start_time_offset_type(
         self, start_index, start_time_offset_type
     ):
-        """Set program start time offset type ('disabled', 'midnight', 'sunset', or 'sunrise'). Resets minutes to 0."""
+        """Set a program start time offset type.
+
+        Resets the offset minutes to 0.
+
+        Args:
+            start_index: Which start time to update (0-3).
+            start_time_offset_type: One of 'disabled', 'midnight',
+                'sunset', or 'sunrise'.
+
+        Returns:
+            API result code (1 = success).
+
+        Raises:
+            IndexError: If start_index is outside 0-3.
+            RuntimeError: If start_index > 0 and the start time type is
+                'repeating' (only start0 exists in that mode).
+            ValueError: If start_time_offset_type is not a valid option.
+        """
         if not 0 <= start_index <= 3:
             raise IndexError("start_index must be between 0 and 3")
 
@@ -361,7 +499,17 @@ class Program(object):
         return await self._set_variables(params)
 
     async def set_program_start_repeat_count(self, repeat_count):
-        """Set program start repeat count"""
+        """Set the program start repeat count.
+
+        Args:
+            repeat_count: Number of times to repeat the start.
+
+        Returns:
+            API result code (1 = success).
+
+        Raises:
+            RuntimeError: If the start time type is 'fixed'.
+        """
         if self.start_time_type == 1:
             raise RuntimeError(
                 "Cannot update repeat count when start time type is 'fixed'"
@@ -373,7 +521,17 @@ class Program(object):
         return await self._set_variables(params)
 
     async def set_program_start_repeat_interval(self, repeat_minutes):
-        """Set program start repeat interval in minutes"""
+        """Set the program start repeat interval.
+
+        Args:
+            repeat_minutes: Interval between repeats in minutes.
+
+        Returns:
+            API result code (1 = success).
+
+        Raises:
+            RuntimeError: If the start time type is 'fixed'.
+        """
         if self.start_time_type == 1:
             raise RuntimeError(
                 "Cannot update repeat count when start time type is 'fixed'"
@@ -385,7 +543,18 @@ class Program(object):
         return await self._set_variables(params)
 
     async def set_weekday_enabled(self, weekday, enabled):
-        """Set program weekday enabled state (weekday = 'Monday', 'Tuesday', etc.)"""
+        """Set whether the program runs on a given weekday.
+
+        Args:
+            weekday: Weekday name ('Monday', 'Tuesday', etc.).
+            enabled: True to run on that weekday, False to skip it.
+
+        Returns:
+            API result code (1 = success).
+
+        Raises:
+            RuntimeError: If the schedule type is not 'weekly'.
+        """
         if self.program_schedule_type != 0:
             raise RuntimeError(
                 "Cannot update Weekly schedule when schedule type is not 'Weekday'"
@@ -397,33 +566,75 @@ class Program(object):
         return await self._set_variables(params)
 
     async def set_station_duration(self, station_index, duration):
+        """Set the run duration of one station in the program.
+
+        Args:
+            station_index: 0-based station index.
+            duration: Run duration in seconds (0 to skip the station).
+
+        Returns:
+            API result code (1 = success).
+        """
         dlist = self._get_program_data().copy()
         dlist[4][station_index] = duration
         params = self._format_program_data(dlist)
         return await self._set_variables(params)
 
     async def set_station_durations(self, durations):
+        """Set the run durations of all stations in the program.
+
+        Args:
+            durations: List of run durations in seconds, one entry per
+                station (0 to skip a station).
+
+        Returns:
+            API result code (1 = success).
+        """
         dlist = self._get_program_data().copy()
         dlist[4] = durations
         params = self._format_program_data(dlist)
         return await self._set_variables(params)
 
     async def set_days0(self, value):
-        """Set days0 (meaning depends on schedule type)"""
+        """Set days0 directly (meaning depends on the schedule type).
+
+        Args:
+            value: Raw days0 value.
+
+        Returns:
+            API result code (1 = success).
+        """
         dlist = self._get_program_data().copy()
         dlist[1] = value
         params = self._format_program_data(dlist)
         return await self._set_variables(params)
 
     async def set_days1(self, value):
-        """Set days1 (meaning depends on schedule type)"""
+        """Set days1 directly (meaning depends on the schedule type).
+
+        Args:
+            value: Raw days1 value.
+
+        Returns:
+            API result code (1 = success).
+        """
         dlist = self._get_program_data().copy()
         dlist[2] = value
         params = self._format_program_data(dlist)
         return await self._set_variables(params)
 
     async def set_starting_in_days(self, value):
-        """Set days0 as starting in days in Interval mode)"""
+        """Set 'starting in days' (days0 in Interval-Day mode).
+
+        Args:
+            value: Number of days until the program starts.
+
+        Returns:
+            API result code (1 = success).
+
+        Raises:
+            RuntimeError: If the schedule type is not 'Interval-Day'.
+        """
         if self.program_schedule_type != SCHEDULE_TYPE_INTERVAL_DAY_CODE:
             raise RuntimeError(
                 "Cannot update Starting In Days when schedule type is not 'Interval-Day'"
@@ -435,7 +646,17 @@ class Program(object):
         return await self._set_variables(params)
 
     async def set_interval_days(self, value):
-        """Set days1 as interval days in Interval mode)"""
+        """Set the interval in days (days1 in Interval-Day mode).
+
+        Args:
+            value: Interval in days (must be >= 1).
+
+        Returns:
+            API result code (1 = success).
+
+        Raises:
+            RuntimeError: If the schedule type is not 'Interval-Day'.
+        """
         if self.program_schedule_type != SCHEDULE_TYPE_INTERVAL_DAY_CODE:
             raise RuntimeError(
                 "Cannot update Interval Days when schedule type is not 'Interval-Day'"
@@ -447,7 +668,18 @@ class Program(object):
         return await self._set_variables(params)
 
     async def set_monthly_day(self, day_of_month):
-        """Set days0 as monthly day in Monthly mode)"""
+        """Set the day of month to run on (days0 in Monthly mode).
+
+        Args:
+            day_of_month: Day of month, 0-31.
+
+        Returns:
+            API result code (1 = success).
+
+        Raises:
+            RuntimeError: If the schedule type is not 'Monthly'.
+            ValueError: If day_of_month is outside 0-31.
+        """
         if self.program_schedule_type != SCHEDULE_TYPE_MONTHLY_CODE:
             raise RuntimeError(
                 "Cannot update Monthly Day when schedule type is not 'Monthly'"
@@ -462,7 +694,19 @@ class Program(object):
         return await self._set_variables(params)
 
     async def set_single_run_day(self, days_since_epoch):
-        """Set days0, days1 as single run day in Single-run mode)"""
+        """Set the single run day (days0/days1 in Single-Run mode).
+
+        Args:
+            days_since_epoch: Run day expressed as days since the epoch,
+                0-65535.
+
+        Returns:
+            API result code (1 = success).
+
+        Raises:
+            RuntimeError: If the schedule type is not 'Single-run'.
+            ValueError: If days_since_epoch is outside 0-65535.
+        """
         if self.program_schedule_type != SCHEDULE_TYPE_SINGLE_RUN_CODE:
             raise RuntimeError(
                 "Cannot update Single Run Day when schedule type is not 'Single-run'"
@@ -478,7 +722,20 @@ class Program(object):
         return await self._set_variables(params)
 
     async def set_date_range_from(self, start_month: int, start_day: int):
-        """Set program date range start date"""
+        """Set the program date range start date.
+
+        Args:
+            start_month: Start month (1-12).
+            start_day: Start day of month (1-31).
+
+        Returns:
+            API result code (1 = success).
+
+        Raises:
+            FirmwareNotSupportedError: If the firmware is older than
+                v2.2.0(1).
+            ValueError: If the date is invalid.
+        """
         if not _is_new_feature_supported(self._controller, 220, 1):
             raise FirmwareNotSupportedError("Feature requires firmware v2.2.0(1)")
 
@@ -491,7 +748,20 @@ class Program(object):
         return await self._set_variables(params)
 
     async def set_date_range_to(self, end_month: int, end_day: int):
-        """Set program date range end date"""
+        """Set the program date range end date.
+
+        Args:
+            end_month: End month (1-12).
+            end_day: End day of month (1-31).
+
+        Returns:
+            API result code (1 = success).
+
+        Raises:
+            FirmwareNotSupportedError: If the firmware is older than
+                v2.2.0(1).
+            ValueError: If the date is invalid.
+        """
         if not _is_new_feature_supported(self._controller, 220, 1):
             raise FirmwareNotSupportedError("Feature requires firmware v2.2.0(1)")
 
@@ -504,7 +774,19 @@ class Program(object):
         return await self._set_variables(params)
 
     async def set_date_range_flag(self, enabled: bool):
-        """Adjust program date range flag"""
+        """Enable or disable the program date range restriction.
+
+        Args:
+            enabled: 1 to enable, 0 to disable.
+
+        Returns:
+            API result code (1 = success).
+
+        Raises:
+            FirmwareNotSupportedError: If the firmware is older than
+                v2.2.0(1).
+            ValueError: If enabled is not 0 or 1.
+        """
         if not _is_new_feature_supported(self._controller, 220, 1):
             raise FirmwareNotSupportedError("Feature requires firmware v2.2.0(1)")
 
@@ -538,6 +820,7 @@ class Program(object):
 
     @property
     def is_running(self):
+        """Whether any station is currently running this program."""
         for _, station in self._controller.stations.items():
             if (
                 station.is_running
@@ -571,6 +854,8 @@ class Program(object):
 
     @property
     def odd_even_restriction_name(self):
+        """Odd/even restriction name ('odd_days' or 'even_days'),
+        or None if unrestricted."""
         value = self.odd_even_restriction
 
         if value == 0 or value == 3:
@@ -599,6 +884,8 @@ class Program(object):
 
     @property
     def program_schedule_type_name(self):
+        """Program schedule type name ('weekday', 'single-run',
+        'monthly', or 'interval_day'), or None."""
         value = self.program_schedule_type
 
         if value == SCHEDULE_TYPE_WEEKLY_CODE:
@@ -617,10 +904,12 @@ class Program(object):
 
     @property
     def start_time_type(self):
+        """Start time type integer (0 = repeating, 1 = fixed)."""
         return self._get_data_flag_bits()[6]
 
     @property
     def start_time_type_name(self):
+        """Start time type name ('repeating' or 'fixed_time'), or None."""
         value = self.start_time_type
 
         if value == 0:
@@ -631,7 +920,10 @@ class Program(object):
 
     @property
     def date_range_enabled(self):
-        """Retrieve Date-range enable flag"""
+        """Whether the date range restriction is enabled.
+
+        Returns 0 on firmware older than v2.2.0(1).
+        """
         if not _is_new_feature_supported(self._controller, 220, 1):
             return 0
         else:
@@ -639,7 +931,10 @@ class Program(object):
 
     @property
     def date_range_from(self):
-        """Retrieve date range start date"""
+        """Date range start as a (month, day) tuple.
+
+        Returns (1, 1) on firmware older than v2.2.0(1).
+        """
         if not _is_new_feature_supported(self._controller, 220, 1):
             return 1, 1  # Jan 1 default
         else:
@@ -650,7 +945,10 @@ class Program(object):
 
     @property
     def date_range_to(self):
-        """Retrieve date range end date"""
+        """Date range end as a (month, day) tuple.
+
+        Returns (12, 31) on firmware older than v2.2.0(1).
+        """
         if not _is_new_feature_supported(self._controller, 220, 1):
             return 12, 31  # Dec 31 default
         else:
@@ -660,7 +958,15 @@ class Program(object):
             return month, day
 
     def get_program_start_time(self, start_index):
-        """Retrieve program start time in encoded value"""
+        """Retrieve a program start time as an encoded value.
+
+        Args:
+            start_index: Which start time to retrieve (0-3).
+
+        Returns:
+            Encoded start time value (minutes from midnight for simple
+            start times).
+        """
         return self._get_variable(3)[start_index]
 
     @property
@@ -669,7 +975,17 @@ class Program(object):
         return self._get_variable(3)
 
     def get_program_start_time_offset(self, start_index):
-        """Retrieve program start time offset in minutes"""
+        """Retrieve a program start time offset in minutes.
+
+        Args:
+            start_index: Which start time to retrieve (0-3).
+
+        Returns:
+            Offset in minutes relative to the offset type.
+
+        Raises:
+            IndexError: If start_index is outside 0-3.
+        """
         if not 0 <= start_index <= 3:
             raise IndexError("start_index must be between 0 and 3")
 
@@ -687,7 +1003,18 @@ class Program(object):
         ]
 
     def get_program_start_time_offset_type(self, start_index):
-        """Retrieve program start time offset type ('midnight', 'sunset', or 'sunrise')"""
+        """Retrieve a program start time offset type.
+
+        Args:
+            start_index: Which start time to retrieve (0-3).
+
+        Returns:
+            One of 'disabled', 'midnight', 'sunset', or 'sunrise'; None
+            for start1-3 when the start time type is 'repeating'.
+
+        Raises:
+            IndexError: If start_index is outside 0-3.
+        """
         if not 0 <= start_index <= 3:
             raise IndexError("start_index must be between 0 and 3")
 
@@ -750,6 +1077,13 @@ class Program(object):
         return self._get_variable(2) + (self._get_variable(1) << 8)
 
     def get_weekday_enabled(self, weekday):
-        """Retrieve program weekday enabled state ('Monday', 'Tuesday', etc.)"""
+        """Retrieve whether the program runs on a given weekday.
+
+        Args:
+            weekday: Weekday name ('Monday', 'Tuesday', etc.).
+
+        Returns:
+            True if the program runs on that weekday.
+        """
         weekday_bits = self._get_variable(1)
         return self._is_set(weekday_bits, WEEKDAYS.index(weekday))

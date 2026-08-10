@@ -73,7 +73,27 @@ class Controller(object):
     """OpenSprinkler Controller"""
 
     def __init__(self, url, password, opts=None):
-        """OpenSprinkler Controller initializer."""
+        """OpenSprinkler Controller initializer.
+
+        Args:
+            url: Controller URL in the form ``http[s]://hostname[:port]``.
+            password: Controller password (plaintext; MD5-hashed for API calls).
+            opts: Optional dict of connection and behavior options:
+
+                - ``session``: externally managed ``aiohttp.ClientSession`` to
+                  reuse; the caller is responsible for closing it.
+                - ``skip_all_endpoint``: if True, never use the ``/ja``
+                  all-in-one endpoint and always use the per-section
+                  endpoints. Overridden by the
+                  ``PYOPENSPRINKLER_SKIP_ALL_ENDPOINT`` environment variable.
+                - ``auto_refresh_on_update``: dict with ``enabled`` (bool,
+                  default True) and ``settle_time`` (seconds, default 1)
+                  controlling the automatic state refresh after update calls.
+                - ``http_username`` / ``http_password``: HTTP basic auth
+                  credentials when the controller sits behind an
+                  authenticating proxy.
+                - ``verify_ssl``: SSL verification flag passed to aiohttp.
+        """
 
         if opts is None:
             opts = {}
@@ -116,18 +136,41 @@ class Controller(object):
             opts["auto_refresh_on_update"]["settle_time"] = 1
 
     def session_start(self):
+        """Create a new internally managed aiohttp client session."""
         client = aiohttp.ClientSession()
         self._http_client = client
 
     async def session_close(self):
+        """Close the internally managed aiohttp client session.
+
+        Does nothing when an external session was provided via the
+        ``session`` option or when no session has been started.
+        """
         if self._http_client is not None and "session" not in self._opts:
             await self._http_client.close()
             self._http_client = None
 
     async def request(self, path, params=None, raw_qs=None, refresh_on_update=None):
+        """Make a request to the API.
+
+        Args:
+            path: API endpoint path, e.g. ``/jc``.
+            params: Optional dict of query string parameters.
+            raw_qs: Optional pre-encoded query string appended verbatim
+                after ``params``.
+            refresh_on_update: Override the auto-refresh behavior for this
+                call; None defers to the instance configuration.
+
+        Returns:
+            Decoded JSON response as a dict.
+
+        Raises:
+            OpenSprinklerAuthError: If the password is rejected.
+            OpenSprinklerApiError: If the API returns an error result code.
+            OpenSprinklerConnectionError: If the controller is unreachable.
+        """
         if params is None:
             params = {}
-        """Make a request to the API."""
         params["pw"] = self._md5password
         qs = urllib.parse.urlencode(params)
         if raw_qs is not None and len(raw_qs) > 0:
@@ -171,6 +214,7 @@ class Controller(object):
     @synchronized(lock)
     @on_exception(expo, OpenSprinklerConnectionError, max_tries=3)
     async def _request_http(self, url):
+        """Perform the HTTP GET with retries and error mapping."""
         try:
             if self._http_client is None:
                 self.session_start()
@@ -219,7 +263,12 @@ class Controller(object):
             raise OpenSprinklerAuthError("Invalid password") from exc
 
     async def refresh(self):
-        """Refresh programs and stations"""
+        """Refresh programs and stations.
+
+        Fetches the full controller state and rebuilds the ``programs``
+        and ``stations`` dicts. Must be called at least once before
+        reading any state-dependent properties.
+        """
         await self._refresh_state()
         self._last_refresh_time = int(round(datetime.datetime.now().timestamp()))
 
@@ -371,19 +420,41 @@ class Controller(object):
 
     # controller variables
     async def enable(self):
-        """Enable operation"""
+        """Enable controller operation.
+
+        Returns:
+            API result code (1 = success).
+        """
         return await self._set_variable("en", 1)
 
     async def disable(self):
-        """Disable operation"""
+        """Disable controller operation.
+
+        Returns:
+            API result code (1 = success).
+        """
         return await self._set_variable("en", 0)
 
     async def reboot(self):
+        """Reboot the controller.
+
+        Returns:
+            API result code (1 = success).
+        """
         return await self._set_variable("rbt", 1)
 
     async def set_rain_delay(self, hours):
-        """
-        Set rain delay time (in hours). Range is 0 to 32767. A value of 0 turns off rain delay.
+        """Set rain delay time.
+
+        Args:
+            hours: Rain delay in hours, 0-32767. A value of 0 turns off
+                rain delay.
+
+        Returns:
+            API result code (1 = success).
+
+        Raises:
+            ValueError: If hours is outside 0-32767.
         """
 
         if hours < 0 or hours > 32767:
@@ -392,11 +463,26 @@ class Controller(object):
         return await self._set_variable("rd", hours)
 
     async def disable_rain_delay(self):
+        """Turn off rain delay.
+
+        Returns:
+            API result code (1 = success).
+        """
         return await self._set_variable("rd", 0)
 
     async def set_station_delay(self, seconds):
-        """
-        Set station delay time (in seconds). Range is -600 to 600 in increments of 5 seconds.
+        """Set station delay time.
+
+        Args:
+            seconds: Station delay in seconds, -600 to 600 in increments
+                of 5.
+
+        Returns:
+            API result code (1 = success).
+
+        Raises:
+            ValueError: If seconds is outside -600 to 600 or not a
+                multiple of 5.
         """
 
         if (not -600 <= seconds <= 600) or (seconds % 5 != 0):
@@ -406,8 +492,17 @@ class Controller(object):
         return await self._set_option("sdt", seconds)
 
     async def set_pause(self, seconds):
-        """
-        Set pause time (in seconds). Range 0 - 86400 (24 hours). A value of 0 cancels any current pause.
+        """Pause operation of running stations.
+
+        Args:
+            seconds: Pause duration in seconds, 0-86400 (24 hours). A
+                value of 0 cancels any current pause.
+
+        Returns:
+            API result code (1 = success).
+
+        Raises:
+            ValueError: If seconds is outside 0-86400.
         """
         # Note that the API does not actually specify a limit, but the UI footer cannot properly
         # represent values above 24 hours so we constrain it to avoid misleading the user.
@@ -417,25 +512,59 @@ class Controller(object):
         return await self._set_pause(seconds)
 
     async def disable_pause(self):
+        """Cancel any current pause.
+
+        Returns:
+            API result code (1 = success).
+        """
         return await self._set_pause(0)
 
     async def enable_remote_extension_mode(self):
+        """Enable remote extension mode.
+
+        Returns:
+            API result code (1 = success).
+        """
         return await self._set_variable("re", 1)
 
     async def disable_remote_extension_mode(self):
+        """Disable remote extension mode.
+
+        Returns:
+            API result code (1 = success).
+        """
         return await self._set_variable("re", 0)
 
     async def stop_all_stations(self):
-        """Stop all running and waiting stations"""
+        """Stop all running and waiting stations.
+
+        Returns:
+            API result code (1 = success).
+        """
         return await self._set_variable("rsn", 1)
 
     async def firmware_update(self):
+        """Trigger a firmware update.
+
+        Returns:
+            API result code (1 = success).
+        """
         return await self._set_variable("update", 1)
 
     # controller options
     async def set_water_level(self, level):
-        """
-        Water level (i.e. % Watering). Acceptable range is 0 to 250.
+        """Set water level (i.e. % Watering).
+
+        Requires firmware 2.1.9 or newer.
+
+        Args:
+            level: Water level percentage, 0-250.
+
+        Returns:
+            API result code (1 = success).
+
+        Raises:
+            ValueError: If level is outside 0-250.
         """
 
         if level < 0 or level > 250:
@@ -444,7 +573,19 @@ class Controller(object):
         return await self._set_option("wl", level)
 
     async def run_once_program(self, station_times, uwt=None, qo=None):
-        """Run once program"""
+        """Run a once-off program with the given per-station durations.
+
+        Args:
+            station_times: List of run durations in seconds, one entry per
+                station (0 to skip a station).
+            uwt: Optional weather adjustment flag (0/1); when 1 the
+                current water level is applied to the durations.
+            qo: Optional queue option; when set the run is queued rather
+                than interrupting running stations.
+
+        Returns:
+            API result code (1 = success).
+        """
         t = json.dumps(station_times).replace(" ", "").strip()
         params = {}
         if uwt is not None:
@@ -455,7 +596,15 @@ class Controller(object):
         return content["result"]
 
     async def set_password(self, password):
-        """Set password"""
+        """Set the controller password.
+
+        Args:
+            password: New plaintext password; stored and used as its MD5
+                hash for subsequent API calls.
+
+        Returns:
+            API result code (1 = success).
+        """
         md5password = hashlib.md5(password.encode("utf-8")).hexdigest()
         params = {"pw": self._md5password, "npw": md5password, "cpw": md5password}
 
@@ -464,40 +613,57 @@ class Controller(object):
         return content["result"]
 
     async def create_program(self, name):
-        """Create new disabled program with first station running for 1 minute on Monday midnight"""
+        """Create a new program.
+
+        The program is created disabled, with the first station running
+        for 1 minute on Monday at midnight.
+
+        Args:
+            name: Name of the new program.
+
+        Returns:
+            API result code (1 = success).
+        """
         params = {"pid": -1, "name": name, "v": "[0,1,0,[0,0,0,0],[60,0,0,0,0,0,0,0]]"}
 
         content = await self.request("/cp", params)
         return content["result"]
 
     async def delete_program(self, index):
-        """Delete program"""
+        """Delete a program.
+
+        Args:
+            index: 0-based index of the program to delete.
+
+        Returns:
+            API result code (1 = success).
+        """
         content = await self.request("/dp", {"pid": index})
         return content["result"]
 
     @property
     def last_refresh_time(self):
-        """Retrieve last refresh time"""
+        """Epoch timestamp of the last successful refresh, or None."""
         return self._last_refresh_time
 
     @property
     def enabled(self):
-        """Retrieve operation enabled"""
+        """Whether controller operation is enabled."""
         return bool(self._get_variable("en"))
 
     @property
     def mac_address(self):
-        """Retrieve controller mac address"""
+        """Controller MAC address."""
         return self._get_variable("mac")
 
     @property
     def firmware_version(self):
-        """Retrieve firmware version"""
+        """Firmware version as an integer, e.g. 219 for 2.1.9."""
         return self._get_option("fwv")
 
     @property
     def firmware_version_name(self):
-        """Retrieve firmware version name"""
+        """Firmware version as a string, e.g. '2.1.9', or None."""
         fwv = self.firmware_version
         try:
             return f"{int(fwv / 100)}.{int(fwv / 10) % 10}.{fwv % 10}"
@@ -506,17 +672,18 @@ class Controller(object):
 
     @property
     def firmware_minor_version(self):
-        """Retrieve firmware minor version"""
+        """Firmware minor version (the number in parentheses), or None."""
         return self._get_option("fwm")
 
     @property
     def hardware_version(self):
-        """Retrieve hardware version"""
+        """Hardware version as an integer, or None."""
         return self._get_option("hwv")
 
     @property
     def hardware_version_name(self):
-        """Retrieve hardware version name"""
+        """Hardware version name, e.g. 'OSPi', 'OSBo', 'Linux', 'Demo',
+        or a 'major.minor' string."""
         if self.hardware_version == HARDWARE_VERSION_OSPI:
             return "OSPi"
 
@@ -538,12 +705,12 @@ class Controller(object):
 
     @property
     def hardware_type(self):
-        """Retrieve hardware type"""
+        """Hardware type integer (0 = AC, 1 = DC, 2 = Latching)."""
         return self._get_option("hwt")
 
     @property
     def hardware_type_name(self):
-        """Retrieve hardware type name"""
+        """Hardware type name ('AC', 'DC', or 'Latching'), or None."""
         if self.hardware_type == HARDWARE_TYPE_AC:
             return "AC"
 
@@ -557,98 +724,98 @@ class Controller(object):
 
     @property
     def device_id(self):
-        """Retrieve device ID"""
+        """Device ID."""
         return self._get_option("devid")
 
     @property
     def device_time(self):
-        """Retrieve device time"""
+        """Controller device time as a UTC epoch timestamp."""
         return self._timestamp_to_utc(self._get_variable("devt"))
 
     @property
     def ignore_password_enabled(self):
-        """Retrieve ignore password"""
+        """Whether the ignore password option is enabled."""
         return bool(self._get_option("ipas"))
 
     @property
     def special_station_auto_refresh_enabled(self):
-        """Retrieve special station auto refresh"""
+        """Whether special station auto refresh is enabled."""
         return bool(self._get_option("sar"))
 
     @property
     def detected_expansion_board_count(self):
-        """Retrieve number of detected expansion boards"""
+        """Number of detected expansion boards."""
         return self._get_option("dexp")
 
     @property
     def maximum_expansion_board_count(self):
-        """Retrieve maximum number of expansion boards"""
+        """Maximum number of supported expansion boards."""
         return self._get_option("mexp")
 
     @property
     def dhcp_enabled(self):
-        """Retrieve dhcp enabled"""
+        """Whether DHCP is enabled."""
         return bool(self._get_option("dhcp"))
 
     @property
     def ip_address(self):
-        """Retrieve controller IP address"""
+        """Controller IP address, or None if not set."""
         return self._ip_from_options("ip")
 
     @property
     def gateway_address(self):
-        """Retrieve controller gateway IP address"""
+        """Controller gateway IP address, or None if not set."""
         return self._ip_from_options("gw")
 
     @property
     def dns_address(self):
-        """Retrieve controller DNS IP address"""
+        """Controller DNS IP address, or None if not set."""
         return self._ip_from_options("dns")
 
     @property
     def ip_subnet(self):
-        """Retrieve controller IP subnet"""
+        """Controller IP subnet, or None if not set."""
         return self._ip_from_options("subn")
 
     @property
     def ntp_address(self):
-        """Retrieve controller NTP IP address"""
+        """Controller NTP IP address, or None if not set."""
         return self._ip_from_options("ntp")
 
     @property
     def ntp_enabled(self):
-        """Retrieve NTP enabled"""
+        """Whether NTP is enabled."""
         return bool(self._get_option("ntp"))
 
     # lrun [station index, program index, duration, end time]
     @property
     def last_run_station(self):
-        """Retrieve last run station"""
+        """Station index of the last station run."""
         return self._get_variable("lrun")[0]
 
     @property
     def last_run_program(self):
-        """Retrieve last run program"""
+        """Program index of the last station run (0 for manual runs)."""
         return self._get_variable("lrun")[1]
 
     @property
     def last_run_duration(self):
-        """Retrieve last run duration"""
+        """Duration of the last station run in seconds."""
         return self._get_variable("lrun")[2]
 
     @property
     def last_run_end_time(self):
-        """Retrieve last run end time"""
+        """End time of the last station run as a UTC epoch timestamp."""
         return self._timestamp_to_utc(self._get_variable("lrun")[3])
 
     @property
     def rssi(self):
-        """Retrieve RSSI"""
+        """WiFi signal strength (RSSI), or None if not reported."""
         return self._get_variable("RSSI")
 
     @property
     def latitude(self):
-        """Retrieve latitude"""
+        """Configured latitude, or None if location is not set."""
         loc = self._get_variable("loc")
         if len(loc) < 1 or "," not in loc:
             return None
@@ -657,7 +824,7 @@ class Controller(object):
 
     @property
     def longitude(self):
-        """Retrieve longitude"""
+        """Configured longitude, or None if location is not set."""
         loc = self._get_variable("loc")
         if len(loc) < 1 or "," not in loc:
             return None
@@ -666,83 +833,67 @@ class Controller(object):
 
     @property
     def current_draw(self):
-        """Retrieve current draw in mA"""
+        """Current draw in mA."""
         return self._get_variable("curr")
 
     @property
     def station_delay(self):
-        """Retrieve station delay in seconds"""
+        """Station delay in seconds."""
         return self._get_option("sdt")
 
     @property
     def master_station_1(self):
-        """
-        Retrieve master station 1
-
-        Note this value is 1 indexed, 0 means disabled
-        """
+        """Master station 1 index (1-based; 0 means disabled)."""
         return self._get_option("mas")
 
     @property
     def master_station_1_time_on_adjustment(self):
-        """
-        Master 1 and 2 on adjusted time (in steps of 5 seconds). Acceptable range is 0 to 600 (note: positive).
-        """
+        """Master 1 on adjustment time (steps of 5 seconds, 0 to 600)."""
         return self._get_option("mton")
 
     @property
     def master_station_1_time_off_adjustment(self):
-        """
-        Master 1 and 2 off adjusted time (in steps of 5 seconds). Acceptable range is -600 to 0 (note: negative).
-        """
+        """Master 1 off adjustment time (steps of 5 seconds, -600 to 0)."""
         return self._get_option("mtof")
 
     @property
     def master_station_2(self):
-        """
-        Retrieve master station 2
-
-        Note this value is 1 indexed, 0 means disabled
-        """
+        """Master station 2 index (1-based; 0 means disabled)."""
         return self._get_option("mas2")
 
     @property
     def master_station_2_time_on_adjustment(self):
-        """
-        Master 1 and 2 on adjusted time (in steps of 5 seconds). Acceptable range is 0 to 600 (note: positive).
-        """
+        """Master 2 on adjustment time (steps of 5 seconds, 0 to 600)."""
         return self._get_option("mton2")
 
     @property
     def master_station_2_time_off_adjustment(self):
-        """
-        Master 1 and 2 off adjusted time (in steps of 5 seconds). Acceptable range is -600 to 0 (note: negative).
-        """
+        """Master 2 off adjustment time (steps of 5 seconds, -600 to 0)."""
         return self._get_option("mtof2")
 
     @property
     def pause_active(self):
-        """Retrieve pause active"""
+        """Whether a pause is currently active."""
         return bool(self._get_variable("pq"))
 
     @property
     def pause_time_remaining(self):
-        """Retrieve remaining pause time, in seconds"""
+        """Remaining pause time in seconds."""
         return self._get_variable("pt")
 
     @property
     def rain_delay_active(self):
-        """Retrieve rain delay active"""
+        """Whether a rain delay is currently active."""
         return bool(self._get_variable("rd"))
 
     @property
     def rain_delay_stop_time(self):
-        """Retrieve rain delay stop time"""
+        """Rain delay stop time as a UTC epoch timestamp."""
         return self._timestamp_to_utc(self._get_variable("rdst"))
 
     @property
     def rain_sensor_active(self):
-        """Retrieve rain sensor active"""
+        """Whether the rain sensor is active, or None if not reported."""
         try:
             return bool(self._get_variable("rs"))
         except KeyError:
@@ -750,7 +901,7 @@ class Controller(object):
 
     @property
     def sensor_1_active(self):
-        """Retrieve sensor 1 active"""
+        """Whether sensor 1 is active, or None if not reported."""
         if self._get_variable("sn1") is not None:
             return bool(self._get_variable("sn1"))
 
@@ -761,7 +912,7 @@ class Controller(object):
 
     @property
     def sensor_1_enabled(self):
-        """Retrieve sensor 1 enabled"""
+        """Whether sensor 1 is enabled, or None if no type is configured."""
         if self.sensor_1_type is None:
             return None
 
@@ -769,7 +920,7 @@ class Controller(object):
 
     @property
     def sensor_1_type(self):
-        """Retrieve sensor 1 type"""
+        """Sensor 1 type integer, or None if not reported."""
         if self._get_option("sn1t") is not None:
             return self._get_option("sn1t")
 
@@ -777,7 +928,7 @@ class Controller(object):
 
     @property
     def sensor_1_type_name(self):
-        """Retrieve sensor 1 type name"""
+        """Sensor 1 type name (e.g. 'rain', 'flow'), or None."""
         if self.sensor_1_type is None:
             return None
 
@@ -785,7 +936,8 @@ class Controller(object):
 
     @property
     def sensor_1_option(self):
-        """Retrieve sensor 1 option"""
+        """Sensor 1 option integer (0 = normally closed, 1 = normally
+        open), or None if not reported."""
         if self._get_option("sn1o") is not None:
             return self._get_option("sn1o")
 
@@ -793,7 +945,8 @@ class Controller(object):
 
     @property
     def sensor_1_option_name(self):
-        """Retrieve sensor 1 option name"""
+        """Sensor 1 option name ('normally_closed' or 'normally_open'),
+        or None."""
         if self.sensor_1_option is None:
             return None
 
@@ -801,25 +954,17 @@ class Controller(object):
 
     @property
     def sensor_1_delayed_on_time(self):
-        """
-        Retrieve sensor 1 delayed on time
-
-        Delayed on time and delayed off time (unit is minutes).
-        """
+        """Sensor 1 delayed on time in minutes."""
         return self._get_option("sn1on")
 
     @property
     def sensor_1_delayed_off_time(self):
-        """
-        Retrieve sensor 1 delayed off time
-
-        Delayed on time and delayed off time (unit is minutes).
-        """
+        """Sensor 1 delayed off time in minutes."""
         return self._get_option("sn1of")
 
     @property
     def sensor_2_active(self):
-        """Retrieve sensor 2 active"""
+        """Whether sensor 2 is active, or None if not reported."""
         if self.sensor_2_type is None:
             return None
 
@@ -827,7 +972,7 @@ class Controller(object):
 
     @property
     def sensor_2_enabled(self):
-        """Retrieve sensor 2 enabled"""
+        """Whether sensor 2 is enabled, or None if no type is configured."""
         if self.sensor_2_type is None:
             return None
 
@@ -835,12 +980,12 @@ class Controller(object):
 
     @property
     def sensor_2_type(self):
-        """Retrieve sensor 2 type"""
+        """Sensor 2 type integer, or None if not reported."""
         return self._get_option("sn2t")
 
     @property
     def sensor_2_type_name(self):
-        """Retrieve sensor 2 type name"""
+        """Sensor 2 type name (e.g. 'rain', 'flow'), or None."""
         if self.sensor_2_type is None:
             return None
 
@@ -848,12 +993,14 @@ class Controller(object):
 
     @property
     def sensor_2_option(self):
-        """Retrieve sensor 2 option"""
+        """Sensor 2 option integer (0 = normally closed, 1 = normally
+        open), or None if not reported."""
         return self._get_option("sn2o")
 
     @property
     def sensor_2_option_name(self):
-        """Retrieve sensor 2 option name"""
+        """Sensor 2 option name ('normally_closed' or 'normally_open'),
+        or None."""
         if self.sensor_2_option is None:
             return None
 
@@ -861,50 +1008,43 @@ class Controller(object):
 
     @property
     def sensor_2_delayed_on_time(self):
-        """
-        Retrieve sensor 2 delayed on time
-
-        Delayed on time and delayed off time (unit is minutes).
-        """
+        """Sensor 2 delayed on time in minutes."""
         return self._get_option("sn2on")
 
     @property
     def sensor_2_delayed_off_time(self):
-        """
-        Retrieve sensor 1 delayed off time
-
-        Delayed on time and delayed off time (unit is minutes).
-        """
+        """Sensor 2 delayed off time in minutes."""
         return self._get_option("sn2of")
 
     @property
     def water_level(self):
-        """Retrieve water level"""
+        """Water level (% Watering), 0-250."""
         return self._get_option("wl")
 
     @property
     def rain_sensor_enabled(self):
-        """Retrieve rain sensor enabled"""
+        """Whether a rain sensor is enabled on either sensor input."""
         return self._sensor_type_enabled(1)
 
     @property
     def flow_sensor_enabled(self):
-        """Retrieve flow sensor enabled"""
+        """Whether a flow sensor is enabled on either sensor input."""
         return self._sensor_type_enabled(2)
 
     @property
     def soil_sensor_enabled(self):
-        """Retrieve soil sensor enabled"""
+        """Whether a soil sensor is enabled on either sensor input."""
         return self._sensor_type_enabled(3)
 
     @property
     def program_switch_sensor_enabled(self):
-        """Retrieve program switch sensor enabled"""
+        """Whether a program switch sensor is enabled on either input."""
         return self._sensor_type_enabled(240)
 
     @property
     def flow_rate(self):
-        """Return flow rate"""
+        """Computed flow rate, or None when no flow sensor is enabled or
+        the reading is unavailable."""
         if not self.flow_sensor_enabled:
             return None
 
@@ -920,32 +1060,33 @@ class Controller(object):
 
     @property
     def flow_count_window(self):
-        """Retrieve flow count window in seconds"""
+        """Flow count window in seconds."""
         return self._get_variable("flwrt")
 
     @property
     def flow_count(self):
-        """Retrieve flow count"""
+        """Flow pulse count within the flow count window."""
         return self._get_variable("flcrt")
 
     @property
     def last_weather_call(self):
-        """Retrieve last weather call"""
+        """Time of the last weather call as a UTC epoch timestamp."""
         return self._timestamp_to_utc(self._get_variable("lwc"))
 
     @property
     def last_successfull_weather_call(self):
-        """Retrieve last successfull weather call"""
+        """Time of the last successful weather call as a UTC epoch
+        timestamp."""
         return self._timestamp_to_utc(self._get_variable("lswc"))
 
     @property
     def last_weather_call_error(self):
-        """Retrieve last weather call error"""
+        """Last weather call error code (0 = success)."""
         return self._get_variable("wterr")
 
     @property
     def last_weather_call_error_name(self):
-        """Retrieve last weather call error name"""
+        """Last weather call error name, or None if unknown/success."""
         if self.last_weather_call_error == -1:
             return WEATHER_ERROR_NOT_RECEIVED
 
@@ -960,35 +1101,27 @@ class Controller(object):
 
     @property
     def sunrise(self):
-        """
-        Retrieve sunrise
-
-        Today’s sunrise time (number of minutes from midnight).
-        """
+        """Today's sunrise time (minutes from midnight)."""
         return self._get_variable("sunrise")
 
     @property
     def sunset(self):
-        """
-        Retrieve sunset
-
-        Today’s sunset time (number of minutes from midnight).
-        """
+        """Today's sunset time (minutes from midnight)."""
         return self._get_variable("sunset")
 
     @property
     def last_reboot_time(self):
-        """Retrieve last device reboot time"""
+        """Last device reboot time as a UTC epoch timestamp."""
         return self._timestamp_to_utc(self._get_variable("lupt"))
 
     @property
     def last_reboot_cause(self):
-        """Retrieve last device reboot cause"""
+        """Last device reboot cause code."""
         return self._get_variable("lrbtc")
 
     @property
     def last_reboot_cause_name(self):
-        """Retrieve last device reboot cause name"""
+        """Last device reboot cause name, or None if unknown."""
         if self.last_reboot_cause == 0:
             return None
 
@@ -1027,22 +1160,22 @@ class Controller(object):
 
     @property
     def mqtt_settings(self):
-        """Retrieve MQTT settings"""
+        """MQTT settings dict, or None if not supported by the firmware."""
         return self._get_variable("mqtt")
 
     @property
     def mqtt_enabled(self):
-        """Return if MQTT is enabled"""
+        """Whether MQTT is enabled, or None if not supported."""
         return (
             bool(self.mqtt_settings["en"]) if self.mqtt_settings is not None else None
         )
 
     @property
     def programs(self):
-        """Return programs"""
+        """Dict of programs keyed by 0-based program index."""
         return self._programs
 
     @property
     def stations(self):
-        """Return stations"""
+        """Dict of stations keyed by 0-based station index."""
         return self._stations
