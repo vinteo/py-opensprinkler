@@ -79,7 +79,16 @@ class Station(object):
         return await self._set_attribute(bit_update_name + str(bank), bits)
 
     async def run(self, seconds=None, qo=None):
-        """Run station"""
+        """Run the station manually.
+
+        Args:
+            seconds: Run duration in seconds (default 60).
+            qo: Optional queue option (firmware 2.2.1+); False appends to
+                the queue, True inserts ahead of the queue.
+
+        Returns:
+            API result code (1 = success).
+        """
         if seconds is None:
             seconds = 60
         params = {"en": 1, "t": seconds}
@@ -88,29 +97,68 @@ class Station(object):
         return await self._manual_run(params)
 
     async def stop(self, ssta=None):
-        """Stop station"""
+        """Stop the station.
+
+        Args:
+            ssta: Optional shift flag (firmware 2.2.1+); True shifts the
+                remaining stations in the station's group forward.
+
+        Returns:
+            API result code (1 = success).
+        """
         params = {"en": 0}
         if ssta is not None:
             params["ssta"] = int(ssta)
         return await self._manual_run(params)
 
     async def toggle(self):
-        """Toggle station"""
+        """Toggle the station: stop it if running, otherwise run it for
+        the default duration.
+
+        Returns:
+            API result code (1 = success).
+        """
         if self.is_running:
             return await self.stop()
         else:
             return await self.run()
 
     async def set_name(self, name):
+        """Set the station name.
+
+        Args:
+            name: New station name.
+
+        Returns:
+            API result code (1 = success).
+        """
         return await self._set_attribute("s" + str(self.index), name)
 
     async def enable(self):
+        """Enable the station.
+
+        Returns:
+            API result code (1 = success).
+        """
         return await self.set_enabled(True)
 
     async def disable(self):
+        """Disable the station.
+
+        Returns:
+            API result code (1 = success).
+        """
         return await self.set_enabled(False)
 
     async def set_enabled(self, value):
+        """Set the station enabled state.
+
+        Args:
+            value: True to enable, False to disable.
+
+        Returns:
+            API result code (1 = success).
+        """
         bit_property = "stn_dis"
         bit_update_name = "d"
         if value:
@@ -119,6 +167,14 @@ class Station(object):
             return await self._bit_set(bit_property, bit_update_name, True)
 
     async def set_master_1_operation_enabled(self, value):
+        """Set whether the station activates master 1.
+
+        Args:
+            value: True to engage master 1 when the station runs.
+
+        Returns:
+            API result code (1 = success).
+        """
         bit_property = "masop"
         bit_update_name = "m"
         if value:
@@ -127,6 +183,14 @@ class Station(object):
             return await self._bit_set(bit_property, bit_update_name, False)
 
     async def set_master_2_operation_enabled(self, value):
+        """Set whether the station activates master 2.
+
+        Args:
+            value: True to engage master 2 when the station runs.
+
+        Returns:
+            API result code (1 = success).
+        """
         bit_property = "masop2"
         bit_update_name = "n"
         if value:
@@ -135,6 +199,19 @@ class Station(object):
             return await self._bit_set(bit_property, bit_update_name, False)
 
     async def set_group(self, value):
+        """Set the station group.
+
+        Args:
+            value: Group id, 0-255.
+
+        Returns:
+            API result code (1 = success).
+
+        Raises:
+            FirmwareNotSupportedError: If the firmware is older than
+                v2.2.0(1).
+            ValueError: If value is outside 0-255.
+        """
         if not _is_new_feature_supported(self._controller, 220, 1):
             raise FirmwareNotSupportedError("Feature requires firmware v2.2.0(1)")
 
@@ -143,6 +220,14 @@ class Station(object):
         return await self._set_attribute("g" + str(self.index), value)
 
     async def set_rain_delay_ignored(self, value):
+        """Set whether the station ignores rain delay.
+
+        Args:
+            value: True to run even during a rain delay.
+
+        Returns:
+            API result code (1 = success).
+        """
         bit_property = "ignore_rain"
         bit_update_name = "i"
         if value:
@@ -151,6 +236,14 @@ class Station(object):
             return await self._bit_set(bit_property, bit_update_name, False)
 
     async def set_sensor_1_ignored(self, value):
+        """Set whether the station ignores sensor 1.
+
+        Args:
+            value: True to run even when sensor 1 is active.
+
+        Returns:
+            API result code (1 = success).
+        """
         bit_property = "ignore_sn1"
         bit_update_name = "j"
         if value:
@@ -159,6 +252,14 @@ class Station(object):
             return await self._bit_set(bit_property, bit_update_name, False)
 
     async def set_sensor_2_ignored(self, value):
+        """Set whether the station ignores sensor 2.
+
+        Args:
+            value: True to run even when sensor 2 is active.
+
+        Returns:
+            API result code (1 = success).
+        """
         bit_property = "ignore_sn2"
         bit_update_name = "k"
         if value:
@@ -167,6 +268,18 @@ class Station(object):
             return await self._bit_set(bit_property, bit_update_name, False)
 
     async def set_sequential_operation(self, value):
+        """Set whether the station runs sequentially (vs. in parallel).
+
+        Args:
+            value: True for sequential operation.
+
+        Returns:
+            API result code (1 = success).
+
+        Raises:
+            FirmwareNotSupportedError: If the firmware is v2.2.1(0) or
+                newer (feature removed).
+        """
         if not _is_removed_feature_supported(self._controller, 221, 0):
             raise FirmwareNotSupportedError("Feature removed in v2.2.1(0)")
 
@@ -189,11 +302,12 @@ class Station(object):
 
     @property
     def is_running(self):
-        """Retrieve is running flag"""
+        """Whether the station is currently running."""
         return bool(self._controller._state["status"]["sn"][self._index])
 
     @property
     def is_master(self):
+        """Whether the station is configured as master 1 or master 2."""
         # stored in controller 1 indexed vs 0 indexed
         station_id = self.index + 1
         return (
@@ -203,26 +317,23 @@ class Station(object):
 
     @property
     def running_program_id(self):
-        """
-        Retrieve seconds remaining
-
-        Note this value is 1 indexed
-        """
+        """ID of the program running this station (1-based; 0 means
+        none)."""
         return self._get_status_variable(0)
 
     @property
     def seconds_remaining(self):
-        """Retrieve seconds remaining"""
+        """Remaining run time in seconds."""
         return self._get_status_variable(1)
 
     @property
     def start_time(self):
-        """Retrieve start time"""
+        """Start time as a UTC epoch timestamp."""
         return self._controller._timestamp_to_utc(self._get_status_variable(2))
 
     @property
     def end_time(self):
-        """Retrieve end time"""
+        """End time as a UTC epoch timestamp (0 if not started)."""
         if self.start_time == 0:
             return 0
         return (
@@ -231,41 +342,59 @@ class Station(object):
 
     @property
     def max_name_length(self):
+        """Maximum supported station name length."""
         return self._controller._state["stations"]["maxlen"]
 
     @property
     def master_1_operation_enabled(self):
+        """Whether the station activates master 1."""
         return self._bit_check("masop")
 
     @property
     def master_2_operation_enabled(self):
+        """Whether the station activates master 2."""
         return self._bit_check("masop2")
 
     @property
     def group(self):
-        """Station group"""
+        """Station group id.
+
+        Raises:
+            FirmwareNotSupportedError: If the firmware is older than
+                v2.2.0(1).
+        """
         if not _is_new_feature_supported(self._controller, 220, 1):
             raise FirmwareNotSupportedError("Feature requires firmware v2.2.0(1)")
         return self._controller._state["stations"]["stn_grp"][self._index]
 
     @property
     def rain_delay_ignored(self):
+        """Whether the station ignores rain delay."""
         return self._bit_check("ignore_rain")
 
     @property
     def sensor_1_ignored(self):
+        """Whether the station ignores sensor 1."""
         return self._bit_check("ignore_sn1")
 
     @property
     def sensor_2_ignored(self):
+        """Whether the station ignores sensor 2."""
         return self._bit_check("ignore_sn2")
 
     @property
     def enabled(self):
+        """Whether the station is enabled."""
         return not self._bit_check("stn_dis")
 
     @property
     def sequential_operation(self):
+        """Whether the station runs sequentially (vs. in parallel).
+
+        Raises:
+            FirmwareNotSupportedError: If the firmware is v2.2.1(0) or
+                newer (feature removed).
+        """
         if not _is_removed_feature_supported(self._controller, 221, 0):
             raise FirmwareNotSupportedError("Feature removed in v2.2.1(0)")
 
@@ -273,10 +402,12 @@ class Station(object):
 
     @property
     def special(self):
+        """Whether the station is a special station (e.g. RF, remote)."""
         return self._bit_check("stn_spe")
 
     @property
     def station_type(self):
+        """Station type ('standard'), or None for special stations."""
         if not self.special:
             return STATION_TYPE_STANDARD
 
@@ -286,7 +417,8 @@ class Station(object):
 
     @property
     def status(self):
-        """Retrieve status"""
+        """Station status name: 'idle', 'manual', 'master_engaged',
+        'once_program', 'program', or 'waiting'."""
         is_running = self.is_running
         pid = self.running_program_id
 
