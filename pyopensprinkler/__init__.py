@@ -1038,7 +1038,7 @@ class Controller(object):
         if _is_new_feature_supported(self, 221, 3):
             return self._get_variable("wls")
         else:
-            return [ self._get_option("wl") ]
+            return [self._get_option("wl")]
 
     @property
     def use_multi_day_watering_levels(self):
