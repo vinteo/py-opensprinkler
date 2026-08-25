@@ -50,6 +50,7 @@ from .exceptions import (
     OpenSprinklerConnectionError,
     OpenSprinklerNoStateError,
 )
+from .utils import _is_new_feature_supported
 
 
 def synchronized(lock):
@@ -872,6 +873,11 @@ class Controller(object):
         return self._get_option("mtof2")
 
     @property
+    def logging_enabled(self):
+        """Whether sprinkler activity and system events are logged."""
+        return bool(self._get_option("lg"))
+
+    @property
     def pause_active(self):
         """Whether a pause is currently active."""
         return bool(self._get_variable("pq"))
@@ -880,6 +886,11 @@ class Controller(object):
     def pause_time_remaining(self):
         """Remaining pause time in seconds."""
         return self._get_variable("pt")
+
+    @property
+    def weather_restriction_active(self):
+        """Whether a weather restriction is currently active."""
+        return bool(self._get_variable("wtrestr"))
 
     @property
     def rain_delay_active(self):
@@ -1020,6 +1031,19 @@ class Controller(object):
     def water_level(self):
         """Water level (% Watering), 0-250."""
         return self._get_option("wl")
+
+    @property
+    def multi_day_watering_levels(self):
+        """Array of current multi-day average watering levels. Length depends on weather provider."""
+        if _is_new_feature_supported(self, 221, 3):
+            return self._get_variable("wls")
+        else:
+            return [ self._get_option("wl") ]
+
+    @property
+    def use_multi_day_watering_levels(self):
+        """Whether to use multi-day average watering levels or single water_level."""
+        return bool(self._get_variable("wto").get("mda", 0) == 100)  # 0 = off, 100 = on
 
     @property
     def rain_sensor_enabled(self):
