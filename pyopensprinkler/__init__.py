@@ -659,7 +659,9 @@ class Controller(object):
             ValueError: If incorrect parameters supplied.
         """
         if hist is None and (not start or not end):
-            raise ValueError('Must supply "hist" days back or "start" and "end" epoch seconds.')
+            raise ValueError(
+                'Must supply "hist" days back or "start" and "end" epoch seconds.'
+            )
 
         params = {}
         if start:
