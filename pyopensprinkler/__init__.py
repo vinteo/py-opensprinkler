@@ -642,7 +642,7 @@ class Controller(object):
         content = await self.request("/dp", {"pid": index})
         return content["result"]
 
-    async def get_sprinkler_logs(self, start=None, end=None, hist=None, type=None):
+    def get_sprinkler_logs(self, start=None, end=None, hist=None, type=None):
         """Get Sprinkler Log Data.
 
         Args: Must supply "hist" or "start" and "end".
@@ -671,7 +671,7 @@ class Controller(object):
         if type:
             params["type"] = type
 
-        return await self.request("/jl", params)
+        return self.request("/jl", params)
 
     @property
     def last_refresh_time(self):
