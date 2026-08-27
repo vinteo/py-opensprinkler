@@ -642,6 +642,39 @@ class Controller(object):
         content = await self.request("/dp", {"pid": index})
         return content["result"]
 
+    async def get_sprinkler_logs(self, start=None, end=None, hist=None, type=None):
+        """Get Sprinkler Log Data.
+
+        Args: Must supply "hist" or "start" and "end".
+            start: Start time (epoch seconds), inclusive.
+            end: End time (epoch seconds), inclusive. Max span: 365 days.
+            hist: History window in days back from today, 0 to 365 days.
+            type: Optional filter. Choices: s1,s2,s3,s4,rd,fl,wl (s3,s4 OpenSprinkler v3.4 or later).
+
+        Returns:
+            - List of [pid,sid,dur,end]: standard run
+            - List of [pid,sid,dur,end,flow]: with the Built-in flow sensor enabled (5th element)
+
+        Raises:
+            ValueError: If incorrect parameters supplied.
+        """
+        if hist is None and (not start or not end):
+            raise ValueError(
+                'Must supply "hist" days back or "start" and "end" epoch seconds.'
+            )
+
+        params = {}
+        if start:
+            params["start"] = start
+        if end:
+            params["end"] = end
+        if hist is not None:  # Allow 0
+            params["hist"] = hist
+        if type:
+            params["type"] = type
+
+        return await self.request("/jl", params)
+
     @property
     def last_refresh_time(self):
         """Epoch timestamp of the last successful refresh, or None."""
