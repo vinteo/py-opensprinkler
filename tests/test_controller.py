@@ -123,12 +123,23 @@ class TestController:
         # Enable pause and verify the state and pause time
         PAUSE_SECONDS = 600
         await controller.set_pause(PAUSE_SECONDS)
+        await controller.refresh()
+
         assert controller.pause_active
+        assert controller.pause_time_remaining > PAUSE_SECONDS - 30
+        assert controller.pause_time_remaining <= PAUSE_SECONDS
 
-        assert controller.pause_time_remaining > 570
-        assert controller.pause_time_remaining <= 600
+        # Now try to alter the pause time. This relies on the controller detecting that it is
+        # currently in a pause, clearing it, and setting the new pause duration.
+        PAUSE_SECONDS = 200
+        await controller.set_pause(PAUSE_SECONDS)
+        await controller.refresh()
 
-        # Setting 0 minute pause clears the pause
+        assert controller.pause_active
+        assert controller.pause_time_remaining > PAUSE_SECONDS - 30
+        assert controller.pause_time_remaining <= PAUSE_SECONDS
+
+        # Setting 0 second pause clears the pause
         await controller.set_pause(0)
         assert not controller.pause_active
         assert controller.pause_time_remaining == 0
