@@ -1,0 +1,67 @@
+name: Firmware Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions: {}
+
+jobs:
+  test:
+    runs-on: arm
+    strategy:
+      matrix:
+        firmware:
+          - version: 215
+            port: 8215
+            tag: '215'
+          - version: 216
+            port: 8216
+            tag: '216'
+          - version: 217
+            port: 8217
+            tag: '217'
+          - version: 218
+            port: 8218
+            tag: '218'
+          - version: 219
+            port: 8219
+            tag: '219'
+          - version: 219.4
+            port: 4219
+            tag: '219_4'
+          - version: 220.1
+            port: 8220
+            tag: '220_1'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.7
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run tests for firmware ${{ matrix.firmware.version }}
+        run: |
+          docker pull vinteo81/opensprinkler-firmware:${{ matrix.firmware.tag }}
+          docker run -d -p 127.0.0.1:${{ matrix.firmware.port }}:8080 vinteo81/opensprinkler-firmware:${{ matrix.firmware.tag }}
+          docker ps -a
+          sleep 2
+          curl 'http://localhost:${{ matrix.firmware.port }}/sp?pw=opendoor&npw=a6d82bced638de3def1e9bbb4983225c&cpw=a6d82bced638de3def1e9bbb4983225c'
+          CONTROLLER_URL=http://localhost:${{ matrix.firmware.port }} CONTROLLER_FIRMWARE=${{ matrix.firmware.version }} pytest --cov=pyopensprinkler --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: true
